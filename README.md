@@ -1,6 +1,6 @@
 [//]: # (SPDX-License-Identifier: CC-BY-4.0)
 
-# FoodTraze Samples
+# FoodTraze
 
 You can use Foodtraze to get started working with Hyperledger Fabric, explore important Fabric features, and learn how to build applications that can interact with blockchain networks using the Fabric SDKs.
 
@@ -24,13 +24,3 @@ transfer an asset in a more realistic transfer scenario.
 
 | [State-Based Endorsement] | This sample demonstrates how to override the chaincode-level endorsement policy to set endorsement policies at the key-level (data/asset level). | [Using State-based endorsement] | golang |
 
-
-## Additional samples
-
-Additional samples demonstrate various Fabric use cases and application patterns.
-
-|  **Sample** | **Description** | **Documentation** |
-| -------------|------------------------------|------------------|
-| [Chaincode] | A set of other sample smart contracts, many of which were used in tutorials prior to the asset transfer sample series. | |
-| [Interest rate swaps] | **Deprecated in favor of state based endorsement asset transfer sample** | |
-| [Foodtraze] | **Deprecated in favor of basic asset transfer sample** |  |
