@@ -20,6 +20,46 @@ type SmartContract struct {
 	contractapi.Contract
 }
 
+type Farmer struct {
+	FarmerName         string                   `json:"FarmerName"`
+	ContactInformation FarmerContactInformation `json:"ContactInformation"`
+}
+
+type FarmerContactInformation struct {
+	Email string `json:"Email"`
+	Phone string `json:"Phone"`
+}
+
+type Location struct {
+	Address     string             `json:"Address"`
+	Coordinates LocationCoordinate `json:"Coordinates"`
+}
+
+type LocationCoordinate struct {
+	Latitude  string `json:"Latitude"`
+	Longitude string `json:"Longitude"`
+}
+
+type CultivationPractices struct {
+	SoilType         string   `json:"SoilType"`
+	IrrigationMethod string   `json:"IrrigationMethod"`
+	FertilizersUsed  []string `json:"FertilizersUsed"`
+	PesticidesUsed   []string `json:"PesticidesUsed"`
+}
+type BlockchainInfo struct {
+	TransactionID string `json:"TransactionID"`
+	BlockNumber   string `json:"BlockNumber"`
+}
+type Farm struct {
+	FarmID               string                `json:"FarmID"`
+	Farmer               *Farmer               `json:"Farmer"`
+	Location             *Location             `json:"Location"`
+	FarmSize             int                   `json:"FarmSize"`
+	CultivationPractices *CultivationPractices `json:"CultivationPractices"`
+	Certifications       []string              `json:"Certifications"`
+	BlockchainInfo       *BlockchainInfo       `json:"BlockchainInfo"`
+}
+
 type TraceEvent struct {
 	MetaInfo    *MetaInfo    `json:"metaInfo"`
 	Header      *Header      `json:"header"`
@@ -143,6 +183,65 @@ type HistoryQueryResult struct {
 //	}
 
 // data
+func (s *SmartContract) CreateFarm(ctx contractapi.TransactionContextInterface, farmId string, farmer string, location string, farmSize int, cultivationPractices string, certifications string, blockchainInfo string) (interface{}, error) {
+
+	// Parse JSON data into Asset struct
+	var farmerData Farmer
+	if err := json.Unmarshal([]byte(farmer), &farmerData); err != nil {
+		// fmt.Println("Error parsing JSON:", err)
+		return nil, fmt.Errorf("the farmData error", err)
+	}
+	// Parse JSON data into Asset struct
+	var locationData Location
+	if err1 := json.Unmarshal([]byte(location), &locationData); err1 != nil {
+		// fmt.Println("Error parsing JSON:", err)
+		return nil, err1
+	}
+	// Parse JSON data into Asset struct
+	var cultivationPracticeData CultivationPractices
+	if err1 := json.Unmarshal([]byte(cultivationPractices), &cultivationPracticeData); err1 != nil {
+		// fmt.Println("Error parsing JSON:", err)
+		return nil, err1
+	}
+	// Parse JSON data into Asset struct
+	var blockChainInfo BlockchainInfo
+	if err1 := json.Unmarshal([]byte(blockchainInfo), &blockChainInfo); err1 != nil {
+		// fmt.Println("Error parsing JSON:", err)
+		return nil, err1
+	}
+
+	arrCertificate := strings.Split(certifications, ",")
+
+	asset := Farm{
+		FarmID:               farmId,
+		Farmer:               &farmerData,
+		Location:             &locationData,
+		FarmSize:             farmSize,
+		CultivationPractices: &cultivationPracticeData,
+		Certifications:       arrCertificate,
+		BlockchainInfo:       &blockChainInfo,
+	}
+	assetJSON, err4 := json.Marshal(asset)
+	if err4 != nil {
+		return nil, fmt.Errorf("the asset json %s already exists", farmId)
+	}
+
+	result := ctx.GetStub().PutState(farmId, assetJSON)
+
+	// Changes the endorsement policy to the new owner org
+	endorsingOrgs := []string{"Org1MSP"}
+	err1 := setAssetStateBasedEndorsement(ctx, farmId, endorsingOrgs)
+	if err1 != nil {
+		return "", fmt.Errorf("failed setting state based endorsement for new owner: %v", err1)
+	}
+
+	rs := &TraceEventRes{
+		EventID: farmId,
+		// TraceId: HeaderData.TraceID,
+		Data: result,
+	}
+	return rs, nil
+}
 func (s *SmartContract) CreateAssetHarvest(ctx contractapi.TransactionContextInterface, data1 string, data2 string, data3 string) (interface{}, error) {
 
 	// Parse JSON data into Asset struct
