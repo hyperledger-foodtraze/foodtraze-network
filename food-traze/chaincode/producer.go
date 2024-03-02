@@ -75,6 +75,72 @@ type CropDetails struct {
 	DocType         string          `json:"DocType"`
 }
 
+type FertilizerPesticideEvent struct {
+	CropID            string          `json:"CropID"`
+	EventID           string          `json:"EventID"`
+	EventType         string          `json:"EventType"`
+	EventDate         string          `json:"EventDate"`
+	Details           string          `json:"Details"`
+	ResponsibleParty  string          `json:"ResponsibleParty"`
+	QuantityUsed      string          `json:"QuantityUsed"`
+	Unit              int             `json:"Unit"`
+	ApplicationMethod string          `json:"ApplicationMethod"`
+	BlockchainInfos   *BlockchainInfo `json:"BlockchainInfos"`
+}
+
+type IrrigationEvent struct {
+	CropID            string          `json:"CropID"`
+	EventID           string          `json:"EventID"`
+	EventType         string          `json:"EventType"`
+	EventDate         string          `json:"EventDate"`
+	Details           string          `json:"Details"`
+	ResponsibleParty  string          `json:"ResponsibleParty"`
+	QuantityUsed      string          `json:"QuantityUsed"`
+	Unit              int             `json:"Unit"`
+	ApplicationMethod string          `json:"ApplicationMethod"`
+	BlockchainInfos   *BlockchainInfo `json:"BlockchainInfos"`
+}
+
+type QualityAssessment struct {
+	Size             float64 `json:"Size"`
+	Color            float64 `json:"Color"`
+	OverallCondition float64 `json:"OverallCondition"`
+}
+type HarvestingEvent struct {
+	FarmID            string             `json:"FarmID"`
+	CropID            string             `json:"CropID"`
+	EventID           string             `json:"EventID"`
+	EventType         string             `json:"EventType"`
+	EventDate         string             `json:"EventDate"`
+	QuantityHarvested int                `json:"QuantityHarvested"`
+	HarvestedBy       string             `json:"HarvestedBy"`
+	HarvestConditions string             `json:"HarvestConditions"`
+	StorageConditions string             `json:"StorageConditions"`
+	QualityAssessment *QualityAssessment `json:"QualityAssessment"`
+	BlockchainInfos   *BlockchainInfo    `json:"BlockchainInfos"`
+}
+type NutritionalContent struct {
+	VitaminC string `json:"VitaminC"`
+	Iron     string `json:"Iron"`
+	Calcium  string `json:"Calcium"`
+}
+type TestResults struct {
+	PesticideResidue       string              `json:"PesticideResidue"`
+	NutritionalContent     *NutritionalContent `json:"CropID"`
+	MicrobialContamination string              `json:"MicrobialContamination"`
+	AllergenPresence       string              `json:"AllergenPresence"`
+}
+type LabTestingEvent struct {
+	FarmID          string          `json:"FarmID"`
+	CropID          string          `json:"CropID"`
+	EventID         string          `json:"EventID"`
+	EventType       string          `json:"EventType"`
+	EventDate       string          `json:"EventDate"`
+	Details         string          `json:"Details"`
+	TestedBy        string          `json:"TestedBy"`
+	TestResults     *TestResults    `json:"TestResults"`
+	BlockchainInfos *BlockchainInfo `json:"BlockchainInfos"`
+}
 type TraceEvent struct {
 	MetaInfo    *MetaInfo    `json:"metaInfo"`
 	Header      *Header      `json:"header"`
@@ -217,7 +283,7 @@ func (s *SmartContract) FoodTrazeCreate(ctx contractapi.TransactionContextInterf
 		}
 		PesticidesUsed := strings.Split(data5, ",")
 		arrCertificate := strings.Split(data7, ",")
-
+		// feetFloat, _ := strconv.ParseFloat("3.2", 32)
 		asset := CropDetails{
 			FarmBy:          data1,
 			CropID:          data2,
@@ -322,6 +388,175 @@ func (s *SmartContract) FoodTrazeCreate(ctx contractapi.TransactionContextInterf
 		response = FoodTazeRes{
 			Status:  200,
 			Message: "Farm Event Created Successfully.",
+			Data:    result,
+		}
+	}
+
+	if status == "FertilizerPesticideEvent" {
+		unit, _ := strconv.Atoi(data8)
+		asset := FertilizerPesticideEvent{
+			CropID:            data1,
+			EventID:           data2,
+			EventType:         data3,
+			EventDate:         data4,
+			Details:           data5,
+			ResponsibleParty:  data6,
+			QuantityUsed:      data7,
+			Unit:              unit,
+			ApplicationMethod: data9,
+		}
+		assetJSON, err4 := json.Marshal(asset)
+		if err4 != nil {
+			return nil, fmt.Errorf("the asset json %s already exists", data2)
+		}
+
+		// farmKey, err := ctx.GetStub().CreateCompositeKey("Farm", []string{data1})
+		// if err != nil {
+		// 	return nil, fmt.Errorf("failed to create composite key: %v", err)
+		// }
+
+		// result := ctx.GetStub().PutState(farmKey, assetJSON)
+		result := ctx.GetStub().PutState(data2, assetJSON)
+
+		// Changes the endorsement policy to the new owner org
+		endorsingOrgs := []string{"Org1MSP"}
+		err1 := setAssetStateBasedEndorsement(ctx, data2, endorsingOrgs)
+		if err1 != nil {
+			return "", fmt.Errorf("failed setting state based endorsement for new owner: %v", err1)
+		}
+		response = FoodTazeRes{
+			Status:  200,
+			Message: "Fertilizer Pesticide Event Created Successfully.",
+			Data:    result,
+		}
+	}
+	if status == "IrrigationEvent" {
+		unit, _ := strconv.Atoi(data8)
+		asset := IrrigationEvent{
+			CropID:            data1,
+			EventID:           data2,
+			EventType:         data3,
+			EventDate:         data4,
+			Details:           data5,
+			ResponsibleParty:  data6,
+			QuantityUsed:      data7,
+			Unit:              unit,
+			ApplicationMethod: data9,
+		}
+		assetJSON, err4 := json.Marshal(asset)
+		if err4 != nil {
+			return nil, fmt.Errorf("the asset json %s already exists", data2)
+		}
+
+		// farmKey, err := ctx.GetStub().CreateCompositeKey("Farm", []string{data1})
+		// if err != nil {
+		// 	return nil, fmt.Errorf("failed to create composite key: %v", err)
+		// }
+
+		// result := ctx.GetStub().PutState(farmKey, assetJSON)
+		result := ctx.GetStub().PutState(data2, assetJSON)
+
+		// Changes the endorsement policy to the new owner org
+		endorsingOrgs := []string{"Org1MSP"}
+		err1 := setAssetStateBasedEndorsement(ctx, data2, endorsingOrgs)
+		if err1 != nil {
+			return "", fmt.Errorf("failed setting state based endorsement for new owner: %v", err1)
+		}
+		response = FoodTazeRes{
+			Status:  200,
+			Message: "Irrigation Event Created Successfully.",
+			Data:    result,
+		}
+	}
+	if status == "HarvestingEvent" {
+		// // Parse JSON data into Asset struct
+		var qualityAssessment QualityAssessment
+		if err1 := json.Unmarshal([]byte(data9), &qualityAssessment); err1 != nil {
+			// fmt.Println("Error parsing JSON1:", err1)
+			return nil, fmt.Errorf("the quality assessment error %v", err1)
+		}
+		quantity, _ := strconv.Atoi(data5)
+		asset := HarvestingEvent{
+			CropID:            data1,
+			EventID:           data2,
+			EventType:         data3,
+			EventDate:         data4,
+			QuantityHarvested: quantity,
+			HarvestedBy:       data6,
+			HarvestConditions: data7,
+			StorageConditions: data8,
+			QualityAssessment: &qualityAssessment,
+		}
+		assetJSON, err4 := json.Marshal(asset)
+		if err4 != nil {
+			return nil, fmt.Errorf("the asset json %s already exists", data2)
+		}
+
+		// farmKey, err := ctx.GetStub().CreateCompositeKey("Farm", []string{data1})
+		// if err != nil {
+		// 	return nil, fmt.Errorf("failed to create composite key: %v", err)
+		// }
+
+		// result := ctx.GetStub().PutState(farmKey, assetJSON)
+		result := ctx.GetStub().PutState(data2, assetJSON)
+
+		// Changes the endorsement policy to the new owner org
+		endorsingOrgs := []string{"Org1MSP"}
+		err1 := setAssetStateBasedEndorsement(ctx, data2, endorsingOrgs)
+		if err1 != nil {
+			return "", fmt.Errorf("failed setting state based endorsement for new owner: %v", err1)
+		}
+		response = FoodTazeRes{
+			Status:  200,
+			Message: "Harvesting Event Created Successfully.",
+			Data:    result,
+		}
+	}
+	if status == "LabTestingEvent" {
+		// // Parse JSON data into Asset struct
+		var nutritionalContent NutritionalContent
+		if err1 := json.Unmarshal([]byte(data7), &nutritionalContent); err1 != nil {
+			// fmt.Println("Error parsing JSON1:", err1)
+			return nil, fmt.Errorf("the quality assessment error %v", err1)
+		}
+		// Parse JSON data into Asset struct
+		testResultData := TestResults{
+			PesticideResidue:       data6,
+			NutritionalContent:     &nutritionalContent,
+			MicrobialContamination: data8,
+			AllergenPresence:       data9,
+		}
+		asset := LabTestingEvent{
+			CropID:      data1,
+			EventID:     data2,
+			EventType:   data3,
+			EventDate:   data4,
+			Details:     data5,
+			TestedBy:    data6,
+			TestResults: &testResultData,
+		}
+		assetJSON, err4 := json.Marshal(asset)
+		if err4 != nil {
+			return nil, fmt.Errorf("the asset json %s already exists", data2)
+		}
+
+		// farmKey, err := ctx.GetStub().CreateCompositeKey("Farm", []string{data1})
+		// if err != nil {
+		// 	return nil, fmt.Errorf("failed to create composite key: %v", err)
+		// }
+
+		// result := ctx.GetStub().PutState(farmKey, assetJSON)
+		result := ctx.GetStub().PutState(data2, assetJSON)
+
+		// Changes the endorsement policy to the new owner org
+		endorsingOrgs := []string{"Org1MSP"}
+		err1 := setAssetStateBasedEndorsement(ctx, data2, endorsingOrgs)
+		if err1 != nil {
+			return "", fmt.Errorf("failed setting state based endorsement for new owner: %v", err1)
+		}
+		response = FoodTazeRes{
+			Status:  200,
+			Message: "Harvesting Event Created Successfully.",
 			Data:    result,
 		}
 	}
