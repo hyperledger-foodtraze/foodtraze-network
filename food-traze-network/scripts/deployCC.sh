@@ -125,6 +125,7 @@ installChaincode() {
   setGlobals $ORG
   set -x
   peer lifecycle chaincode install ${CC_NAME}.tar.gz >&log.txt
+  infoln "res"
   res=$?
   { set +x; } 2>/dev/null
   cat log.txt
