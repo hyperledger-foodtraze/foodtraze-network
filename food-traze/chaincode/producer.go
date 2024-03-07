@@ -3,15 +3,14 @@ package chaincode
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"math/rand"
-	"regexp"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/hyperledger/fabric-chaincode-go/pkg/statebased"
 	"github.com/hyperledger/fabric-contract-api-go/contractapi"
+	"google.golang.org/protobuf/types/known/timestamppb"
 	// "github.com/hyperledger/fabric/core/chaincode/lib/cid"
 )
 
@@ -48,7 +47,9 @@ type CultivationPractices struct {
 }
 type BlockchainInfo struct {
 	TransactionID string `json:"TransactionID"`
-	BlockNumber   string `json:"BlockNumber"`
+	BlockNumber   int64  `json:"BlockNumber"`
+	ChannelId     string
+	Timestamp     *timestamppb.Timestamp
 }
 type Farm struct {
 	FarmID               string                `json:"FarmID"`
@@ -275,15 +276,21 @@ func (s *SmartContract) FoodTrazeCreate(ctx contractapi.TransactionContextInterf
 	var response FoodTazeRes
 	if status == "CropCreateEvent" {
 
-		// Parse JSON data into Asset struct
-		var blockChainInfo BlockchainInfo
-		if err1 := json.Unmarshal([]byte(data8), &blockChainInfo); err1 != nil {
-			// fmt.Println("Error parsing JSON:", err)
-			return nil, err1
-		}
 		PesticidesUsed := strings.Split(data5, ",")
 		arrCertificate := strings.Split(data7, ",")
 		// feetFloat, _ := strconv.ParseFloat("3.2", 32)
+		channelId := ctx.GetStub().GetChannelID()
+		transactionId := ctx.GetStub().GetTxID()
+		timestamps, _ := ctx.GetStub().GetTxTimestamp()
+		// Retrieve the block number from the transaction timestamp
+		blockNumber := timestamps.GetSeconds() / 10
+
+		// Parse JSON data into Asset struct
+		var blockChainInfo BlockchainInfo
+		blockChainInfo.BlockNumber = blockNumber
+		blockChainInfo.TransactionID = transactionId
+		blockChainInfo.ChannelId = channelId
+		blockChainInfo.Timestamp = timestamps
 		asset := CropDetails{
 			FarmBy:          data1,
 			CropID:          data2,
@@ -349,11 +356,23 @@ func (s *SmartContract) FoodTrazeCreate(ctx contractapi.TransactionContextInterf
 		arrCertificate := strings.Split(data8, ",")
 
 		// // Parse JSON data into Asset struct
+		// var blockChainInfo BlockchainInfo
+		// if err1 := json.Unmarshal([]byte(data9), &blockChainInfo); err1 != nil {
+		// 	// fmt.Println("Error parsing JSON:", err)
+		// 	return nil, fmt.Errorf("the blockchain info error %v", err1)
+		// }
+		channelId := ctx.GetStub().GetChannelID()
+		transactionId := ctx.GetStub().GetTxID()
+		timestamps, _ := ctx.GetStub().GetTxTimestamp()
+		// Retrieve the block number from the transaction timestamp
+		blockNumber := timestamps.GetSeconds() / 10
+
+		// Parse JSON data into Asset struct
 		var blockChainInfo BlockchainInfo
-		if err1 := json.Unmarshal([]byte(data9), &blockChainInfo); err1 != nil {
-			// fmt.Println("Error parsing JSON:", err)
-			return nil, fmt.Errorf("the blockchain info error %v", err1)
-		}
+		blockChainInfo.BlockNumber = blockNumber
+		blockChainInfo.TransactionID = transactionId
+		blockChainInfo.ChannelId = channelId
+		blockChainInfo.Timestamp = timestamps
 
 		asset := Farm{
 			FarmID:               data1,
@@ -592,30 +611,6 @@ func (s *SmartContract) GetAllFarms(ctx contractapi.TransactionContextInterface)
 	return farms, nil
 }
 
-// Function to retrieve all Struct1 data
-func (s *SmartContract) GetAllStruct1(ctx contractapi.TransactionContextInterface) ([]*Farm, error) {
-	resultsIterator, err := ctx.GetStub().GetStateByRange("", "")
-	if err != nil {
-		return nil, err
-	}
-	defer resultsIterator.Close()
-
-	var structs []*Farm
-	for resultsIterator.HasNext() {
-		queryResponse, err := resultsIterator.Next()
-		if err != nil {
-			return nil, err
-		}
-
-		var data Farm
-		if err := json.Unmarshal(queryResponse.Value, &data); err != nil {
-			return nil, err
-		}
-		structs = append(structs, &data)
-	}
-	return structs, nil
-}
-
 // ReadAsset returns the asset stored in the world state with given id.
 func (s *SmartContract) ReadFarmById(ctx contractapi.TransactionContextInterface, id string) (*Farm, error) {
 	assetJSON, err := ctx.GetStub().GetState(id)
@@ -766,7 +761,7 @@ func (s *SmartContract) CreateFarm1(ctx contractapi.TransactionContextInterface,
 	var farmerInformatioData FarmerContactInformation
 	if err := json.Unmarshal([]byte(farmerContactInformation), &farmerInformatioData); err != nil {
 		// fmt.Println("Error parsing JSON:", err)
-		return nil, fmt.Errorf("the farmData error", err)
+		return nil, fmt.Errorf("the farmData error %v", err)
 	}
 	// Parse JSON data into Asset struct
 	farmerData := Farmer{
@@ -777,7 +772,7 @@ func (s *SmartContract) CreateFarm1(ctx contractapi.TransactionContextInterface,
 	var locationCoridinates LocationCoordinate
 	if err := json.Unmarshal([]byte(locationCoridinate), &locationCoridinates); err != nil {
 		// fmt.Println("Error parsing JSON:", err)
-		return nil, fmt.Errorf("the farmData error1", err)
+		return nil, fmt.Errorf("the farmData error1 %v", err)
 	}
 	locationData := Location{
 		Address:     location,
@@ -797,13 +792,13 @@ func (s *SmartContract) CreateFarm1(ctx contractapi.TransactionContextInterface,
 	var cultivationPracticeData CultivationPractices
 	if err1 := json.Unmarshal([]byte(cultivationPractices), &cultivationPracticeData); err1 != nil {
 		// fmt.Println("Error parsing JSON1:", err1)
-		return nil, fmt.Errorf("the farmData error2", err1)
+		return nil, fmt.Errorf("the farmData error2 %v", err1)
 	}
 	// // Parse JSON data into Asset struct
 	var blockChainInfo BlockchainInfo
 	if err1 := json.Unmarshal([]byte(blockchainInfo), &blockChainInfo); err1 != nil {
 		// fmt.Println("Error parsing JSON:", err)
-		return nil, fmt.Errorf("the farmData error3", err1)
+		return nil, fmt.Errorf("the farmData error3 %v", err1)
 	}
 
 	arrCertificate := strings.Split(certifications, ",")
@@ -839,645 +834,6 @@ func (s *SmartContract) CreateFarm1(ctx contractapi.TransactionContextInterface,
 	return rs, nil
 }
 
-func (s *SmartContract) CreateAssetHarvest(ctx contractapi.TransactionContextInterface, data1 string, data2 string, data3 string) (interface{}, error) {
-
-	// Parse JSON data into Asset struct
-	var HeaderData Header
-	if err := json.Unmarshal([]byte(data1), &HeaderData); err != nil {
-		// fmt.Println("Error parsing JSON:", err)
-		return nil, fmt.Errorf("the headers error", err)
-	}
-	// Parse JSON data into Asset struct
-	var metaData MetaInfo
-	if err1 := json.Unmarshal([]byte(data2), &metaData); err1 != nil {
-		// fmt.Println("Error parsing JSON:", err)
-		return nil, err1
-	}
-	// metaData.EventType = "cropInformation"
-	// metaData.CreatedDate, _ = time.Parse("2006-01-02 15:04:05 ", time.Now().UTC().Format("2006-01-02 15:04:05"))
-	var HarvestDatas HarvestData
-	if err3 := json.Unmarshal([]byte(data3), &HarvestDatas); err3 != nil {
-		fmt.Println("Error parsing JSON:", err3)
-		return nil, fmt.Errorf("the HarvestDatas error", err3)
-	}
-	exists, err2 := s.AssetExists(ctx, HeaderData.EventID)
-	if err2 != nil {
-		return nil, fmt.Errorf("the Harvest Datas exist error", err2)
-	}
-	if exists {
-		return nil, fmt.Errorf("the Harvest Datas %s already exists", HeaderData.EventID)
-	}
-	asset := TraceEvent{
-		Header:      &HeaderData,
-		MetaInfo:    &metaData,
-		HarvestData: &HarvestDatas,
-	}
-	assetJSON, err4 := json.Marshal(asset)
-	if err4 != nil {
-		return nil, fmt.Errorf("the asset json %s already exists", asset)
-	}
-
-	result := ctx.GetStub().PutState(HeaderData.EventID, assetJSON)
-
-	// Changes the endorsement policy to the new owner org
-	endorsingOrgs := []string{"Org1MSP"}
-	err1 := setAssetStateBasedEndorsement(ctx, HeaderData.EventID, endorsingOrgs)
-	if err1 != nil {
-		return "", fmt.Errorf("failed setting state based endorsement for new owner: %v", err1)
-	}
-
-	rs := &TraceEventRes{
-		EventID: HeaderData.EventID,
-		// TraceId: HeaderData.TraceID,
-		Data: result,
-	}
-	return rs, nil
-}
-
-// GetAllAssets returns all assets found in world state
-func (s *SmartContract) GetAllHarvestorEvents(ctx contractapi.TransactionContextInterface) ([]*TraceEvent, error) {
-	// range query with empty string for startKey and endKey does an
-	// open-ended query of all assets in the chaincode namespace.
-	resultsIterator, err := ctx.GetStub().GetStateByRange("", "")
-	if err != nil {
-		return nil, err
-	}
-	defer resultsIterator.Close()
-
-	var assets []*TraceEvent
-	for resultsIterator.HasNext() {
-		queryResponse, err := resultsIterator.Next()
-		if err != nil {
-			return nil, err
-		}
-
-		var asset TraceEvent
-		err = json.Unmarshal(queryResponse.Value, &asset)
-		if err != nil {
-			return nil, err
-		}
-		assets = append(assets, &asset)
-	}
-
-	return assets, nil
-}
-
-func (s *SmartContract) UpdateAssetProducts(ctx contractapi.TransactionContextInterface, id string, data string) (interface{}, error) {
-	exists, err2 := s.AssetExists(ctx, id)
-	if err2 != nil {
-		return nil, fmt.Errorf("the asset exist error", err2)
-	}
-	if !exists {
-		return nil, fmt.Errorf("the asset %s already exists", id)
-	}
-	// Parse JSON data into Asset struct
-	var ProductData Products
-	if err := json.Unmarshal([]byte(data), &ProductData); err != nil {
-		// fmt.Println("Error parsing JSON:", err)
-		return nil, fmt.Errorf("the headers error", err)
-	}
-	asset, err := s.ReadAssetEvent(ctx, id)
-	if err != nil {
-		return nil, err
-	}
-
-	asset.Products = &ProductData
-
-	assetJSON, err := json.Marshal(asset)
-	if err != nil {
-		return nil, err
-	}
-
-	ctx.GetStub().PutState(id, assetJSON)
-
-	rs := &TraceEventRes{
-		EventID: asset.Header.EventID,
-		// TraceId: asset.Header.TraceID,
-	}
-	return rs, nil
-}
-
-func (s *SmartContract) UpdateHarvesterData(ctx contractapi.TransactionContextInterface, id string, data string) (interface{}, error) {
-	exists, err2 := s.AssetExists(ctx, id)
-	if err2 != nil {
-		return nil, fmt.Errorf("the asset exist error", err2)
-	}
-	if !exists {
-		return nil, fmt.Errorf("the asset %s already exists", id)
-	}
-	// Parse JSON data into Asset struct
-	var HarvestDatas HarvestData
-	if err3 := json.Unmarshal([]byte(data), &HarvestDatas); err3 != nil {
-		fmt.Println("Error parsing JSON:", err3)
-		return nil, fmt.Errorf("the HarvestDatas error", err3)
-	}
-	asset, err := s.ReadAssetEvent(ctx, id)
-	if err != nil {
-		return nil, err
-	}
-
-	asset.HarvestData = &HarvestDatas
-
-	assetJSON, err := json.Marshal(asset)
-	if err != nil {
-		return nil, err
-	}
-
-	ctx.GetStub().PutState(id, assetJSON)
-
-	rs := &TraceEventRes{
-		EventID: asset.Header.EventID,
-		// TraceId: asset.Header.TraceID,
-	}
-	return rs, nil
-}
-
-func (s *SmartContract) CreateAssetProduct(ctx contractapi.TransactionContextInterface, data1 string, data2 string, data3 string) (interface{}, error) {
-
-	// Parse JSON data into Asset struct
-	var HeaderData Header
-	if err := json.Unmarshal([]byte(data1), &HeaderData); err != nil {
-		// fmt.Println("Error parsing JSON:", err)
-		return nil, fmt.Errorf("the headers error", err)
-	}
-	exists, err2 := s.AssetExists(ctx, HeaderData.EventID)
-	if err2 != nil {
-		return nil, fmt.Errorf("the asset exist error", err2)
-	}
-	if exists {
-		return nil, fmt.Errorf("the asset %s already exists", HeaderData.EventID)
-	}
-	// Parse JSON data into Asset struct
-	var metaData MetaInfo
-	if err1 := json.Unmarshal([]byte(data2), &metaData); err1 != nil {
-		// fmt.Println("Error parsing JSON:", err)
-		return nil, err1
-	}
-	// metaData.EventType = "Product"
-	// Parse JSON data into Asset struct
-	var ProductData Products
-	if err := json.Unmarshal([]byte(data3), &ProductData); err != nil {
-		// fmt.Println("Error parsing JSON:", err)
-		return nil, fmt.Errorf("the headers error", err)
-	}
-	// var HarvestDatas HarvestData
-	// if err3 := json.Unmarshal([]byte(data3), &HarvestDatas); err3 != nil {
-	// 	fmt.Println("Error parsing JSON:", err3)
-	// 	return nil, fmt.Errorf("the HarvestDatas error", err3)
-	// }
-
-	asset := TraceEvent{
-		Header:   &HeaderData,
-		MetaInfo: &metaData,
-		Products: &ProductData,
-	}
-	assetJSON, err4 := json.Marshal(asset)
-	if err4 != nil {
-		return nil, fmt.Errorf("the asset json %s already exists", asset)
-	}
-
-	ctx.GetStub().PutState(HeaderData.EventID, assetJSON)
-
-	rs := &TraceEventRes{
-		EventID: asset.Header.EventID,
-		// TraceId: asset.Header.TraceID,
-	}
-	return rs, nil
-}
-
-func (s *SmartContract) CreatedProductSegregate(ctx contractapi.TransactionContextInterface, id, eventId, quantity string) (interface{}, error) {
-	exists, err2 := s.AssetExists(ctx, eventId)
-	if err2 != nil {
-		return nil, fmt.Errorf("the asset exist error", err2)
-	}
-	if !exists {
-		return nil, fmt.Errorf("the asset %s already exists", eventId)
-	}
-	// Parse JSON data into Asset struct
-	// var ProductData Products
-	// if err := json.Unmarshal([]byte(data), &ProductData); err != nil {
-	// 	// fmt.Println("Error parsing JSON:", err)
-	// 	return nil, fmt.Errorf("the headers error", err)
-	// }
-	asset, err := s.ReadAssetEvent(ctx, eventId)
-	if err != nil {
-		return nil, err
-	}
-
-	strInit := regexp.MustCompile(`[^0-9 ]+`).ReplaceAllString(strings.ReplaceAll(string(asset.Products.Quantity), " ", ""), "")
-	initialQuantity, _ := strconv.Atoi(strInit)
-	strParam := regexp.MustCompile(`[^0-9 ]+`).ReplaceAllString(strings.ReplaceAll(string(quantity), " ", ""), "")
-	paramQuantity, _ := strconv.Atoi(strParam)
-	if initialQuantity >= paramQuantity {
-
-		reduceValue := (initialQuantity - paramQuantity)
-		asset.Products.Quantity = strconv.Itoa(reduceValue) + " kg"
-		assetJSON, err1 := json.Marshal(asset)
-		if err1 != nil {
-			return nil, err1
-		}
-		ctx.GetStub().PutState(eventId, assetJSON)
-		// prodQuantity := strconv.Itoa(paramQuantity)
-		product := &ProductSegregate{
-			Header:   asset.Header,
-			MetaInfo: asset.MetaInfo,
-			Products: asset.Products,
-		}
-		product.Header.EventID = id
-		product.Products.Quantity = quantity
-		product.Products.Status = "Created"
-		product.Products.TraceId = eventId
-		assetJSONLast, err1 := json.Marshal(product)
-		if err1 != nil {
-			return nil, err1
-		}
-
-		ctx.GetStub().PutState(id, assetJSONLast)
-		// Changes the endorsement policy to the new owner org
-		endorsingOrgs := []string{"Org1MSP"}
-		err := setAssetStateBasedEndorsement(ctx, id, endorsingOrgs)
-		if err != nil {
-			return "", fmt.Errorf("failed setting state based endorsement for new owner: %v", err1)
-		}
-
-	} else {
-		rs := &TraceEventErrorRes{
-			Status:  0,
-			Message: "Quantity was minimum not able to segregate",
-			// TraceId: asset.Header.TraceID,
-		}
-		return rs, nil
-	}
-
-	rs := &TraceEventRes{
-		EventID: asset.Header.EventID,
-		// TraceId: asset.Header.TraceID,
-	}
-	return rs, nil
-}
-
-// AssetExists returns true when asset with given ID exists in world state
-// func (s *SmartContract) AssetExists(ctx contractapi.TransactionContextInterface, id string) (bool, error) {
-// 	assetJSON, err := ctx.GetStub().GetState(id)
-// 	if err != nil {
-// 		return false, fmt.Errorf("failed to read from world state: %v", err)
-// 	}
-
-// 	return assetJSON != nil, nil
-// }
-
-// TransferAsset updates the owner field of asset with given id in world state, and returns the old owner.
-func (s *SmartContract) TransferHarvestAsset(ctx contractapi.TransactionContextInterface, id string, newOwner string, mspId string) (interface{}, error) {
-	asset, err := s.ReadProductAsset(ctx, id)
-	if err != nil {
-		return "", err
-	}
-	asset.MetaInfo.Owner = newOwner
-	asset.MetaInfo.Organisation = "Org2"
-	asset.MetaInfo.MspId = mspId
-
-	assetJSON, err := json.Marshal(asset)
-	if err != nil {
-		return "", err
-	}
-
-	err = ctx.GetStub().PutState(id, assetJSON)
-	if err != nil {
-		return "", err
-	}
-
-	// Changes the endorsement policy to the new owner org
-	endorsingOrgs := []string{"Org2MSP"}
-	err = setAssetStateBasedEndorsement(ctx, id, endorsingOrgs)
-	if err != nil {
-		return "", fmt.Errorf("failed setting state based endorsement for new owner: %v", err)
-	}
-
-	rs := &TraceEventRes{
-		EventID: asset.Header.EventID,
-		// TraceId: asset.Header.TraceID,
-	}
-
-	return rs, nil
-}
-
-func (s *SmartContract) UpdateHarvestProduct(ctx contractapi.TransactionContextInterface, id string, data string) (interface{}, error) {
-
-	exists, err2 := s.AssetExists(ctx, id)
-	if err2 != nil {
-		return nil, fmt.Errorf("the asset exist error", err2)
-	}
-	if !exists {
-		return nil, fmt.Errorf("the asset %s already exists", id)
-	}
-	asset, err := s.ReadAssetEvent(ctx, id)
-	if err != nil {
-		return nil, err
-	}
-	asset.Products.LogisticData = data
-
-	assetAsBytes, _ := json.Marshal(asset)
-
-	// Check minter authorization - this sample assumes Org1 is the central banker with privilege to mint new tokens
-	clientMSPID, err := ctx.GetClientIdentity().GetMSPID()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get MSPID: %v", err)
-	}
-	// if clientMSPID != "Org1MSP" {
-	// 	return nil, fmt.Errorf("client is not authorized to mint new tokens")
-	// }
-
-	ctx.GetStub().PutState(id, assetAsBytes)
-
-	rs := &TraceEventRes{
-		EventID: asset.Header.EventID,
-		TraceId: clientMSPID,
-		Data:    nil,
-	}
-	return rs, nil
-}
-
-func (s *SmartContract) CreateAssetHarvestFertilizer(ctx contractapi.TransactionContextInterface, id string, data1 string) (interface{}, error) {
-	exists, err2 := s.AssetExists(ctx, id)
-	if err2 != nil {
-		return nil, fmt.Errorf("the asset exist error", err2)
-	}
-	if !exists {
-		return nil, fmt.Errorf("the asset %s already exists", id)
-	}
-	asset, err := s.ReadAssetEvent(ctx, id)
-	if err != nil {
-		return nil, err
-	}
-	asset.HarvestData.FertilizerUsage = data1
-	asset.MetaInfo.EventType = "fertilizerUsage"
-
-	assetAsBytes, _ := json.Marshal(asset)
-
-	ctx.GetStub().PutState(id, assetAsBytes)
-
-	rs := &TraceEventRes{
-		EventID: asset.Header.EventID,
-		// TraceId: asset.Header.TraceID,
-		Data: nil,
-	}
-	return rs, nil
-}
-
-func (s *SmartContract) CreateHarvestPlantingDate(ctx contractapi.TransactionContextInterface, id string, data1 string) (interface{}, error) {
-	exists, err2 := s.AssetExists(ctx, id)
-	if err2 != nil {
-		return nil, fmt.Errorf("the asset exist error", err2)
-	}
-	if !exists {
-		return nil, fmt.Errorf("the asset %s already exists", id)
-	}
-	asset, err := s.ReadAssetEvent(ctx, id)
-	if err != nil {
-		return nil, err
-	}
-	asset.HarvestData.PlantingDate = data1
-	asset.MetaInfo.EventType = "plantingDate"
-
-	assetAsBytes, _ := json.Marshal(asset)
-
-	ctx.GetStub().PutState(id, assetAsBytes)
-
-	rs := &TraceEventRes{
-		EventID: asset.Header.EventID,
-		// TraceId: asset.Header.TraceID,
-		Data: nil,
-	}
-	return rs, nil
-}
-
-func (s *SmartContract) CreateHarvestDate(ctx contractapi.TransactionContextInterface, id string, data1 string) (interface{}, error) {
-	exists, err2 := s.AssetExists(ctx, id)
-	if err2 != nil {
-		return nil, fmt.Errorf("the asset exist error", err2)
-	}
-	if !exists {
-		return nil, fmt.Errorf("the asset %s already exists", id)
-	}
-	asset, err := s.ReadAssetEvent(ctx, id)
-	if err != nil {
-		return nil, err
-	}
-	asset.HarvestData.HarvestingDate = data1
-	asset.MetaInfo.EventType = "harvestingDate"
-
-	assetAsBytes, _ := json.Marshal(asset)
-
-	ctx.GetStub().PutState(id, assetAsBytes)
-
-	rs := &TraceEventRes{
-		EventID: asset.Header.EventID,
-		// TraceId: asset.Header.TraceID,
-		Data: nil,
-	}
-	return rs, nil
-}
-
-func (s *SmartContract) UpdateHarvestCropInfo(ctx contractapi.TransactionContextInterface, id string, data string) (interface{}, error) {
-	exists, err2 := s.AssetExists(ctx, id)
-	if err2 != nil {
-		return nil, fmt.Errorf("the asset exist error", err2)
-	}
-	if !exists {
-		return nil, fmt.Errorf("the asset %s already exists", id)
-	}
-	asset, err := s.ReadAssetEvent(ctx, id)
-	if err != nil {
-		return nil, err
-	}
-	asset.HarvestData.CropInformation = data
-	asset.MetaInfo.EventType = "cropInformation"
-
-	assetAsBytes, _ := json.Marshal(asset)
-
-	ctx.GetStub().PutState(id, assetAsBytes)
-
-	rs := &TraceEventRes{
-		EventID: asset.Header.EventID,
-		// TraceId: asset.Header.TraceID,
-		Data: nil,
-	}
-	return rs, nil
-}
-
-func (s *SmartContract) UpdateHarvestLabData(ctx contractapi.TransactionContextInterface, id string, data string) (interface{}, error) {
-	exists, err2 := s.AssetExists(ctx, id)
-	if err2 != nil {
-		return nil, fmt.Errorf("the asset exist error", err2)
-	}
-	if !exists {
-		return nil, fmt.Errorf("the asset %s already exists", id)
-	}
-	asset, err := s.ReadAssetEvent(ctx, id)
-	if err != nil {
-		return nil, err
-	}
-	asset.HarvestData.LabData = data
-	asset.MetaInfo.EventType = "labData"
-
-	assetAsBytes, _ := json.Marshal(asset)
-
-	ctx.GetStub().PutState(id, assetAsBytes)
-
-	rs := &TraceEventRes{
-		EventID: asset.Header.EventID,
-		// TraceId: asset.Header.TraceID,
-		Data: nil,
-	}
-	return rs, nil
-}
-
-func (s *SmartContract) UpdateHarvestYieldPerAcre(ctx contractapi.TransactionContextInterface, id string, data string) (interface{}, error) {
-	exists, err2 := s.AssetExists(ctx, id)
-	if err2 != nil {
-		return nil, fmt.Errorf("the asset exist error", err2)
-	}
-	if !exists {
-		return nil, fmt.Errorf("the asset %s already exists", id)
-	}
-	asset, err := s.ReadAssetEvent(ctx, id)
-	if err != nil {
-		return nil, err
-	}
-	asset.HarvestData.YieldPerAcre = data
-	asset.MetaInfo.EventType = "yieldPerAcre"
-
-	assetAsBytes, _ := json.Marshal(asset)
-
-	ctx.GetStub().PutState(id, assetAsBytes)
-
-	rs := &TraceEventRes{
-		EventID: asset.Header.EventID,
-		// TraceId: asset.Header.TraceID,
-		Data: nil,
-	}
-	return rs, nil
-}
-
-func (s *SmartContract) UpdateHarvestQualityAndSafety(ctx contractapi.TransactionContextInterface, id string, data string) (interface{}, error) {
-	exists, err2 := s.AssetExists(ctx, id)
-	if err2 != nil {
-		return nil, fmt.Errorf("the asset exist error", err2)
-	}
-	if !exists {
-		return nil, fmt.Errorf("the asset %s already exists", id)
-	}
-	asset, err := s.ReadAssetEvent(ctx, id)
-	if err != nil {
-		return nil, err
-	}
-	asset.HarvestData.QualityAndSafety = data
-	asset.MetaInfo.EventType = "qualityAndSafety"
-
-	assetAsBytes, _ := json.Marshal(asset)
-
-	ctx.GetStub().PutState(id, assetAsBytes)
-
-	rs := &TraceEventRes{
-		EventID: asset.Header.EventID,
-		// TraceId: asset.Header.TraceID,
-		Data: nil,
-	}
-	return rs, nil
-}
-
-func (s *SmartContract) UpdateHarvestCertificationAndComplaince(ctx contractapi.TransactionContextInterface, id string, data string) (interface{}, error) {
-	exists, err2 := s.AssetExists(ctx, id)
-	if err2 != nil {
-		return nil, fmt.Errorf("the asset exist error", err2)
-	}
-	if !exists {
-		return nil, fmt.Errorf("the asset %s already exists", id)
-	}
-	asset, err := s.ReadAssetEvent(ctx, id)
-	if err != nil {
-		return nil, err
-	}
-	asset.HarvestData.CertificationAndComplaince = data
-	asset.MetaInfo.EventType = "certificationAndComplaince"
-
-	assetAsBytes, _ := json.Marshal(asset)
-
-	ctx.GetStub().PutState(id, assetAsBytes)
-
-	rs := &TraceEventRes{
-		EventID: asset.Header.EventID,
-		// TraceId: asset.Header.TraceID,
-		Data: nil,
-	}
-	return rs, nil
-}
-
-func (s *SmartContract) UpdateHarvestEnvironmentalDate(ctx contractapi.TransactionContextInterface, id string, data string) (interface{}, error) {
-	exists, err2 := s.AssetExists(ctx, id)
-	if err2 != nil {
-		return nil, fmt.Errorf("the asset exist error", err2)
-	}
-	if !exists {
-		return nil, fmt.Errorf("the asset %s already exists", id)
-	}
-	asset, err := s.ReadAssetEvent(ctx, id)
-	if err != nil {
-		return nil, err
-	}
-	asset.HarvestData.EnvironmentalDate = data
-	asset.MetaInfo.EventType = "environmentalDate"
-
-	assetAsBytes, _ := json.Marshal(asset)
-
-	ctx.GetStub().PutState(id, assetAsBytes)
-
-	rs := &TraceEventRes{
-		EventID: asset.Header.EventID,
-		// TraceId: asset.Header.TraceID,
-		Data: nil,
-	}
-	return rs, nil
-}
-
-// ReadAsset returns the asset stored in the world state with given id.
-func (s *SmartContract) ReadAssetEvent(ctx contractapi.TransactionContextInterface, id string) (*TraceEvent, error) {
-	assetJSON, err := ctx.GetStub().GetState(id)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read from world state: %v", err)
-	}
-	if assetJSON == nil {
-		return nil, fmt.Errorf("the asset %s does not exist", id)
-	}
-
-	var asset TraceEvent
-	err = json.Unmarshal(assetJSON, &asset)
-	if err != nil {
-		return nil, fmt.Errorf("the unmarshall error", err)
-	}
-
-	return &asset, nil
-}
-
-// ReadAsset returns the asset stored in the world state with given id.
-func (s *SmartContract) ReadProductAsset(ctx contractapi.TransactionContextInterface, id string) (*ProductSegregate, error) {
-	assetJSON, err := ctx.GetStub().GetState(id)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read from world state: %v", err)
-	}
-	if assetJSON == nil {
-		return nil, fmt.Errorf("the asset %s does not exist", id)
-	}
-
-	var asset ProductSegregate
-	err = json.Unmarshal(assetJSON, &asset)
-	if err != nil {
-		return nil, fmt.Errorf("the unmarshall error", err)
-	}
-
-	return &asset, nil
-}
-
 // DeleteAsset deletes an given asset from the world state.
 func (s *SmartContract) DeleteAsset(ctx contractapi.TransactionContextInterface, id string) error {
 	exists, err := s.AssetExists(ctx, id)
@@ -1499,51 +855,6 @@ func (s *SmartContract) AssetExists(ctx contractapi.TransactionContextInterface,
 	}
 
 	return assetJSON != nil, nil
-}
-
-// GetAssetHistory returns the chain of custody for an asset since issuance.
-func (s *SmartContract) GetAssetHistory(ctx contractapi.TransactionContextInterface, assetID string) ([]HistoryQueryResult, error) {
-	log.Printf("GetAssetHistory: ID %v", assetID)
-
-	resultsIterator, err := ctx.GetStub().GetHistoryForKey(assetID)
-	if err != nil {
-		return nil, err
-	}
-	defer resultsIterator.Close()
-
-	var records []HistoryQueryResult
-	for resultsIterator.HasNext() {
-		response, err := resultsIterator.Next()
-		if err != nil {
-			return nil, err
-		}
-
-		var asset TraceEvent
-		// if len(response.Value) > 0 {
-		err = json.Unmarshal(response.Value, &asset)
-		if err != nil {
-			return nil, err
-		}
-		// } else {
-		// 	asset = TraceEvent{
-		// 		BatchNumber: assetID,
-		// 	}
-		// }
-		timestamp, err := time.Parse("2006-01-02 15:04:05 ", time.Now().UTC().Format("2006-01-02 15:04:05"))
-		if err != nil {
-			return nil, err
-		}
-
-		record := HistoryQueryResult{
-			TxId:      response.TxId,
-			Timestamp: timestamp,
-			Record:    &asset,
-			IsDelete:  response.IsDelete,
-		}
-		records = append(records, record)
-	}
-
-	return records, nil
 }
 
 // setAssetStateBasedEndorsement adds an endorsement policy to an asset so that the passed orgs need to agree upon transfer
