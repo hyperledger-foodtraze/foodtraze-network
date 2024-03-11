@@ -10,7 +10,6 @@ import (
 
 	"github.com/hyperledger/fabric-chaincode-go/pkg/statebased"
 	"github.com/hyperledger/fabric-contract-api-go/contractapi"
-	"google.golang.org/protobuf/types/known/timestamppb"
 	// "github.com/hyperledger/fabric/core/chaincode/lib/cid"
 )
 
@@ -46,10 +45,11 @@ type CultivationPractices struct {
 	PesticidesUsed   []string `json:"PesticidesUsed"`
 }
 type BlockchainInfo struct {
-	TransactionID string `json:"TransactionID"`
-	BlockNumber   int64  `json:"BlockNumber"`
-	ChannelId     string
-	Timestamp     *timestamppb.Timestamp
+	TransactionID string    `json:"TransactionID"`
+	ClientId      string    `json:"ClientId"`
+	BlockNumber   int64     `json:"BlockNumber"`
+	ChannelId     string    `json:"ChannelId"`
+	Timestamp     time.Time `json:"Timestamp"`
 }
 type Farm struct {
 	FarmID               string                `json:"FarmID"`
@@ -140,6 +140,32 @@ type LabTestingEvent struct {
 	Details         string          `json:"Details"`
 	TestedBy        string          `json:"TestedBy"`
 	TestResults     *TestResults    `json:"TestResults"`
+	BlockchainInfos *BlockchainInfo `json:"BlockchainInfos"`
+}
+type Distribution struct {
+	Distributor      *Distributor `json:"Distributor"`
+	Destination      string       `json:"Destination"`
+	DistributionDate string       `json:"DistributionDate"`
+	DeliveryStatus   string       `json:"DeliveryStatus"`
+}
+type Distributor struct {
+	ParticipantID   string `json:"ParticipantID"`
+	DistributorName string `json:"DistributorName"`
+	Location        string `json:"Location"`
+}
+type Participants struct {
+	FarmID []string `json:"FarmID"`
+	CropID []string `json:"CropID"`
+}
+type ProductDetail struct {
+	ProductID       string          `json:"ProductID"`
+	ProductType     string          `json:"ProductType"`
+	ProductName     string          `json:"ProductName"`
+	BatchNumber     string          `json:"BatchNumber"`
+	Quantity        string          `json:"Quantity"`
+	Unit            string          `json:"Unit"`
+	Distribution    *Distribution   `json:"Distribution"`
+	Participants    *Participants   `json:"Participants"`
 	BlockchainInfos *BlockchainInfo `json:"BlockchainInfos"`
 }
 type TraceEvent struct {
@@ -272,7 +298,7 @@ type FoodTazeRes struct {
 
 // data
 
-func (s *SmartContract) FoodTrazeCreate(ctx contractapi.TransactionContextInterface, status string, data1 string, data2 string, data3 string, data4 string, data5 string, data6 string, data7 string, data8 string, data9 string) (interface{}, error) {
+func (s *SmartContract) FoodTrazeCreate(ctx contractapi.TransactionContextInterface, status string, data1 string, data2 string, data3 string, data4 string, data5 string, data6 string, data7 string, data8 string, data9 string, data10 string, data11 string) (interface{}, error) {
 	var response FoodTazeRes
 	if status == "CropCreateEvent" {
 
@@ -281,16 +307,18 @@ func (s *SmartContract) FoodTrazeCreate(ctx contractapi.TransactionContextInterf
 		// feetFloat, _ := strconv.ParseFloat("3.2", 32)
 		channelId := ctx.GetStub().GetChannelID()
 		transactionId := ctx.GetStub().GetTxID()
-		timestamps, _ := ctx.GetStub().GetTxTimestamp()
+		// timestamps, _ := ctx.GetStub().GetTxTimestamp()
+		timestamp, _ := time.Parse("2006-01-02 15:04:05 ", time.Now().UTC().Format("2006-01-02 15:04:05"))
 		// Retrieve the block number from the transaction timestamp
-		blockNumber := timestamps.GetSeconds() / 10
-
+		// blockNumber := timestamps.GetSeconds() / 10
+		clientId, _ := ctx.GetClientIdentity().GetID()
 		// Parse JSON data into Asset struct
 		var blockChainInfo BlockchainInfo
-		blockChainInfo.BlockNumber = blockNumber
+		// blockChainInfo.BlockNumber = clientId
 		blockChainInfo.TransactionID = transactionId
+		blockChainInfo.ClientId = clientId
 		blockChainInfo.ChannelId = channelId
-		blockChainInfo.Timestamp = timestamps
+		blockChainInfo.Timestamp = timestamp
 		asset := CropDetails{
 			FarmBy:          data1,
 			CropID:          data2,
@@ -363,16 +391,14 @@ func (s *SmartContract) FoodTrazeCreate(ctx contractapi.TransactionContextInterf
 		// }
 		channelId := ctx.GetStub().GetChannelID()
 		transactionId := ctx.GetStub().GetTxID()
-		timestamps, _ := ctx.GetStub().GetTxTimestamp()
-		// Retrieve the block number from the transaction timestamp
-		blockNumber := timestamps.GetSeconds() / 10
-
+		clientId, _ := ctx.GetClientIdentity().GetID()
+		timestamp, _ := time.Parse("2006-01-02 15:04:05 ", time.Now().UTC().Format("2006-01-02 15:04:05"))
 		// Parse JSON data into Asset struct
 		var blockChainInfo BlockchainInfo
-		blockChainInfo.BlockNumber = blockNumber
 		blockChainInfo.TransactionID = transactionId
+		blockChainInfo.ClientId = clientId
 		blockChainInfo.ChannelId = channelId
-		blockChainInfo.Timestamp = timestamps
+		blockChainInfo.Timestamp = timestamp
 
 		asset := Farm{
 			FarmID:               data1,
@@ -579,6 +605,58 @@ func (s *SmartContract) FoodTrazeCreate(ctx contractapi.TransactionContextInterf
 			Data:    result,
 		}
 	}
+	if status == "ProductEvent" {
+		// // Parse JSON data into Asset struct
+		var distributorContent Distributor
+		if err1 := json.Unmarshal([]byte(data8), &distributorContent); err1 != nil {
+			// fmt.Println("Error parsing JSON1:", err1)
+			return nil, fmt.Errorf("the distributor error %v", err1)
+		}
+		var distribution Distribution
+		distribution.DistributionDate = data7
+		distribution.Distributor = &distributorContent
+		distribution.Destination = data9
+		distribution.DeliveryStatus = data10
+		var participantContent Participants
+		if err1 := json.Unmarshal([]byte(data11), &participantContent); err1 != nil {
+			// fmt.Println("Error parsing JSON1:", err1)
+			return nil, fmt.Errorf("the participant error %v", err1)
+		}
+		asset := ProductDetail{
+			ProductID:    data1,
+			ProductType:  data2,
+			ProductName:  data3,
+			BatchNumber:  data4,
+			Quantity:     data5,
+			Unit:         data6,
+			Distribution: &distribution,
+			Participants: &participantContent,
+		}
+		assetJSON, err4 := json.Marshal(asset)
+		if err4 != nil {
+			return nil, fmt.Errorf("the asset json %s already exists", data2)
+		}
+
+		// farmKey, err := ctx.GetStub().CreateCompositeKey("Farm", []string{data1})
+		// if err != nil {
+		// 	return nil, fmt.Errorf("failed to create composite key: %v", err)
+		// }
+
+		// result := ctx.GetStub().PutState(farmKey, assetJSON)
+		result := ctx.GetStub().PutState(data1, assetJSON)
+
+		// Changes the endorsement policy to the new owner org
+		endorsingOrgs := []string{"Org1MSP"}
+		err1 := setAssetStateBasedEndorsement(ctx, data1, endorsingOrgs)
+		if err1 != nil {
+			return "", fmt.Errorf("failed setting state based endorsement for new owner: %v", err1)
+		}
+		response = FoodTazeRes{
+			Status:  200,
+			Message: "Harvesting Event Created Successfully.",
+			Data:    result,
+		}
+	}
 	return response, nil
 }
 
@@ -712,6 +790,129 @@ func (s *SmartContract) GetAllCropsByFarmId(ctx contractapi.TransactionContextIn
 	}
 
 	return assets, nil
+}
+
+type TrazeDetail struct {
+	Farm       *Farm
+	Crop       *CropDetails
+	Fertilizer *FertilizerPesticideEvent
+	Irrigation *IrrigationEvent
+	Harvesting *HarvestingEvent
+	LabTesting *LabTestingEvent
+	Product    *ProductDetail
+}
+
+// ReadAsset returns the asset stored in the world state with given id.
+func (s *SmartContract) ReadTrazeById(ctx contractapi.TransactionContextInterface, id string, status string) (*TrazeDetail, error) {
+
+	assetJSON, err := ctx.GetStub().GetState(id)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read from world state: %v", err)
+	}
+	if assetJSON == nil {
+		return nil, fmt.Errorf("the asset %s does not exist", id)
+	}
+	// var response FoodTazeRes
+	var data TrazeDetail
+	if status == "CropEvent" {
+		var asset CropDetails
+		err = json.Unmarshal(assetJSON, &asset)
+		if err != nil {
+			return nil, fmt.Errorf("the unmarshall error %s", err)
+		}
+
+		data.Crop = &asset
+		// return &data, nil
+		// response = FoodTazeRes{
+		// 	Status:  200,
+		// 	Message: "Crop detail retrived Successfully.",
+		// 	Data:    asset,
+		// }
+
+	}
+
+	if status == "FarmEvent" {
+		var asset Farm
+		err = json.Unmarshal(assetJSON, &asset)
+		if err != nil {
+			return nil, fmt.Errorf("the unmarshall error %s", err)
+		}
+		data.Farm = &asset
+		// return &data, nil
+		// response = FoodTazeRes{
+		// 	Status:  200,
+		// 	Message: "Farm detail retrived Successfully.",
+		// 	Data:    asset,
+		// }
+	}
+
+	if status == "FertilizerPesticideEvent" {
+		var asset FertilizerPesticideEvent
+		err = json.Unmarshal(assetJSON, &asset)
+		if err != nil {
+			return nil, fmt.Errorf("the unmarshall error %s", err)
+		}
+		data.Fertilizer = &asset
+		// response = FoodTazeRes{
+		// 	Status:  200,
+		// 	Message: "Fertilizer Pesticide detail retrived Successfully.",
+		// 	Data:    asset,
+		// }
+	}
+	if status == "IrrigationEvent" {
+		var asset IrrigationEvent
+		err = json.Unmarshal(assetJSON, &asset)
+		if err != nil {
+			return nil, fmt.Errorf("the unmarshall error %s", err)
+		}
+		data.Irrigation = &asset
+		// response = FoodTazeRes{
+		// 	Status:  200,
+		// 	Message: "Irrigation detail retrived Successfully.",
+		// 	Data:    asset,
+		// }
+	}
+	if status == "HarvestingEvent" {
+		var asset HarvestingEvent
+		err = json.Unmarshal(assetJSON, &asset)
+		if err != nil {
+			return nil, fmt.Errorf("the unmarshall error %s", err)
+		}
+		data.Harvesting = &asset
+		// response = FoodTazeRes{
+		// 	Status:  200,
+		// 	Message: "Harvesting event retrived Successfully.",
+		// 	Data:    asset,
+		// }
+	}
+	if status == "LabTestingEvent" {
+		var asset LabTestingEvent
+		err = json.Unmarshal(assetJSON, &asset)
+		if err != nil {
+			return nil, fmt.Errorf("the unmarshall error %s", err)
+		}
+		data.LabTesting = &asset
+		// response = FoodTazeRes{
+		// 	Status:  200,
+		// 	Message: "Labtesting detail retrived Successfully.",
+		// 	Data:    asset,
+		// }
+	}
+	if status == "ProductEvent" {
+		var asset ProductDetail
+		err = json.Unmarshal(assetJSON, &asset)
+		if err != nil {
+			return nil, fmt.Errorf("the unmarshall error %s", err)
+		}
+		data.Product = &asset
+		// response = FoodTazeRes{
+		// 	Status:  200,
+		// 	Message: "Product detail retrived Successfully.",
+		// 	Data:    asset,
+		// }
+	}
+	return &data, nil
+	// return &response, nil
 }
 
 func (s *SmartContract) CreateCrop(ctx contractapi.TransactionContextInterface, data1 string, data2 string, data3 string, data4 string, data5 string, data6 string, data7 string, data8 string) (interface{}, error) {
