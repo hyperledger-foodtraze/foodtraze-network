@@ -51,6 +51,11 @@ type BlockchainInfo struct {
 	ChannelId     string    `json:"ChannelId"`
 	Timestamp     time.Time `json:"Timestamp"`
 }
+type IpfsImage struct {
+	ImageName string `json:"ImageName"`
+	ImageCid  string `json:"ImageCid"`
+}
+
 type Farm struct {
 	FarmID               string                `json:"FarmID"`
 	Farmer               *Farmer               `json:"Farmer"`
@@ -61,6 +66,7 @@ type Farm struct {
 	BlockchainInfo       *BlockchainInfo       `json:"BlockchainInfo"`
 	IsDelete             int                   `json:"IsDelete"`
 	DocType              string                `json:"DocType"`
+	IpfsImage            []IpfsImage           `json:"IpfsImage"`
 }
 
 type CropDetails struct {
@@ -382,7 +388,14 @@ func (s *SmartContract) FoodTrazeCreate(ctx contractapi.TransactionContextInterf
 			return nil, fmt.Errorf("the cultivation practice error %v", err1)
 		}
 		arrCertificate := strings.Split(data8, ",")
-
+		var ipfsImg []IpfsImage
+		if data9 != "" {
+			if err1 := json.Unmarshal([]byte(data9), &ipfsImg); err1 != nil {
+				// fmt.Println("Error parsing JSON1:", err1)
+				return nil, fmt.Errorf("the ipfs image data error %v", err1)
+			}
+		}
+		// ipfsCid := strings.Split(data9, ",")
 		// // Parse JSON data into Asset struct
 		// var blockChainInfo BlockchainInfo
 		// if err1 := json.Unmarshal([]byte(data9), &blockChainInfo); err1 != nil {
@@ -410,6 +423,7 @@ func (s *SmartContract) FoodTrazeCreate(ctx contractapi.TransactionContextInterf
 			BlockchainInfo:       &blockChainInfo,
 			IsDelete:             0,
 			DocType:              "Farm",
+			IpfsImage:            ipfsImg,
 		}
 		assetJSON, err4 := json.Marshal(asset)
 		if err4 != nil {
@@ -622,15 +636,26 @@ func (s *SmartContract) FoodTrazeCreate(ctx contractapi.TransactionContextInterf
 			// fmt.Println("Error parsing JSON1:", err1)
 			return nil, fmt.Errorf("the participant error %v", err1)
 		}
+		channelId := ctx.GetStub().GetChannelID()
+		transactionId := ctx.GetStub().GetTxID()
+		clientId, _ := ctx.GetClientIdentity().GetID()
+		timestamp, _ := time.Parse("2006-01-02 15:04:05 ", time.Now().UTC().Format("2006-01-02 15:04:05"))
+		// Parse JSON data into Asset struct
+		var blockChainInfo BlockchainInfo
+		blockChainInfo.TransactionID = transactionId
+		blockChainInfo.ClientId = clientId
+		blockChainInfo.ChannelId = channelId
+		blockChainInfo.Timestamp = timestamp
 		asset := ProductDetail{
-			ProductID:    data1,
-			ProductType:  data2,
-			ProductName:  data3,
-			BatchNumber:  data4,
-			Quantity:     data5,
-			Unit:         data6,
-			Distribution: &distribution,
-			Participants: &participantContent,
+			ProductID:       data1,
+			ProductType:     data2,
+			ProductName:     data3,
+			BatchNumber:     data4,
+			Quantity:        data5,
+			Unit:            data6,
+			Distribution:    &distribution,
+			Participants:    &participantContent,
+			BlockchainInfos: &blockChainInfo,
 		}
 		assetJSON, err4 := json.Marshal(asset)
 		if err4 != nil {
@@ -913,6 +938,41 @@ func (s *SmartContract) ReadTrazeById(ctx contractapi.TransactionContextInterfac
 	}
 	return &data, nil
 	// return &response, nil
+}
+
+// GetAllFarms returns all assets found in world state
+func (s *SmartContract) CheckFarmEmail(ctx contractapi.TransactionContextInterface, email string) (bool, error) {
+
+	// range query with empty string for startKey and endKey does an
+	// open-ended query of all assets in the chaincode namespace.
+	queryString := fmt.Sprintf("{\"selector\":{\"DocType\":\"%s\",\"Farmer.ContactInformation.Email\":\"%s\"}}", "Farm", email)
+	resultsIterator, err := ctx.GetStub().GetQueryResult(queryString)
+	if err != nil {
+		return true, err
+	}
+	defer resultsIterator.Close()
+
+	var farms []*Farm
+	for resultsIterator.HasNext() {
+		queryResponse, err := resultsIterator.Next()
+		if err != nil {
+			return true, fmt.Errorf("failed to iterate farm: %v", err)
+		}
+		// fmt.log("queryResponse.Value", queryResponse.Value)
+		var farm Farm
+		err = json.Unmarshal(queryResponse.Value, &farm)
+		if err != nil {
+			return true, fmt.Errorf("unmarshall farm data: %v", err)
+		}
+		farms = append(farms, &farm)
+	}
+	var result bool
+	if len(farms) != 0 {
+		result = true
+	} else {
+		result = false
+	}
+	return result, nil
 }
 
 func (s *SmartContract) CreateCrop(ctx contractapi.TransactionContextInterface, data1 string, data2 string, data3 string, data4 string, data5 string, data6 string, data7 string, data8 string) (interface{}, error) {
