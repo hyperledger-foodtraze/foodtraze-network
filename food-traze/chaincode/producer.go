@@ -114,6 +114,7 @@ type CropDetails struct {
 	DocType         string  `json:"DocType"`
 	UserId          string  `json:"UserId"`
 	Headers         *Header `json:"Headers"`
+	AliasOrgName    string  `json:"AliasOrgName"`
 }
 
 type FertilizerPesticideEvent struct {
@@ -209,8 +210,10 @@ type Distributor struct {
 	Location        string `json:"Location"`
 }
 type Participants struct {
-	FarmID []string `json:"FarmID"`
-	CropID []string `json:"CropID"`
+	FarmID   []string `json:"FarmID"`
+	FarmName string   `json:"FarmName"`
+	CropID   []string `json:"CropID"`
+	CropName string   `json:"CropName"`
 }
 type ProductDetail struct {
 	FTLCID          string          `json:"FTLCID"`
@@ -335,7 +338,7 @@ type ShippingingKdes struct {
 	DocType             string               `json:"DocType"`
 	UserId              string               `json:"UserId"`
 	Status              string               `json:"Status"`
-	IsAccepted          int                  `json:"IsAccepted"`
+	IsAccepted          string               `json:"IsAccepted"`
 }
 
 type TraceEvent struct {
@@ -469,7 +472,7 @@ type FoodTazeRes struct {
 
 // data
 
-func (s *SmartContract) FoodTrazeCreate(ctx contractapi.TransactionContextInterface, status string, data1 string, data2 string, data3 string, data4 string, data5 string, data6 string, data7 string, data8 string, data9 string, data10 string, data11 string, data12 string, data13 string, data14 string) (interface{}, error) {
+func (s *SmartContract) FoodTrazeCreate(ctx contractapi.TransactionContextInterface, status string, data1 string, data2 string, data3 string, data4 string, data5 string, data6 string, data7 string, data8 string, data9 string, data10 string, data11 string, data12 string, data13 string, data14 string, data15 string) (interface{}, error) {
 	var response FoodTazeRes
 	if status == "CropCreateEvent" {
 
@@ -519,6 +522,7 @@ func (s *SmartContract) FoodTrazeCreate(ctx contractapi.TransactionContextInterf
 			UserId:          data11,
 			DocType:         "Crop",
 			Headers:         &headerContent,
+			AliasOrgName:    data14,
 		}
 		assetJSON, err4 := json.Marshal(asset)
 		if err4 != nil {
@@ -1194,7 +1198,7 @@ func (s *SmartContract) FoodTrazeCreate(ctx contractapi.TransactionContextInterf
 		blockChainInfo.ChannelId = channelId
 		blockChainInfo.Timestamp = timestamp
 		blockChainInfo.MspId = mspId
-		accept, _ := strconv.Atoi(data9)
+		// accept, _ := strconv.Atoi(data9)
 		asset := ShippingingKdes{
 			FTLCID:              data1,
 			SenderInformation:   &senderContent,
@@ -1206,7 +1210,7 @@ func (s *SmartContract) FoodTrazeCreate(ctx contractapi.TransactionContextInterf
 			UserId:              data7,
 			DocType:             "ShippingKdes",
 			Status:              data8,
-			IsAccepted:          accept,
+			IsAccepted:          data9,
 		}
 		assetJSON, err4 := json.Marshal(asset)
 		if err4 != nil {
@@ -2044,6 +2048,102 @@ func (s *SmartContract) DeleteTrazeById(ctx contractapi.TransactionContextInterf
 	return nil
 }
 
+// ReadAsset returns the asset stored in the world state with given id.
+func (s *SmartContract) DeleteTrazeImageAndFileById(ctx contractapi.TransactionContextInterface, id, status, types, data string) (bool, error) {
+	exists, err2 := s.AssetExists(ctx, id)
+	if err2 != nil {
+		return false, fmt.Errorf("the traze data %s exist error", err2)
+	}
+	if !exists {
+		return false, fmt.Errorf("the traze data %s not exists", id)
+	}
+
+	if status == "image" && types == "FarmEvent" {
+		var ipfsImage []FarmImage
+		if err1 := json.Unmarshal([]byte(data), &ipfsImage); err1 != nil {
+			// fmt.Println("Error parsing JSON1:", err1)
+			return false, fmt.Errorf("the ipfs image data error %v", err1)
+		}
+		assetJSON, err := ctx.GetStub().GetState(id)
+		if err != nil {
+			return false, fmt.Errorf("failed to read farm data from world state: %v", err)
+		}
+		if assetJSON == nil {
+			return false, fmt.Errorf("the farm %s does not exist", id)
+		}
+		var farm Farm
+		err = json.Unmarshal(assetJSON, &farm)
+		if err != nil {
+			return false, fmt.Errorf("unmarshall farm data: %v", err)
+		}
+		farm.FarmImage = ipfsImage
+
+		assetJSON2, err4 := json.Marshal(farm)
+		if err4 != nil {
+			return false, fmt.Errorf("the asset json %s already exists", assetJSON2)
+		}
+		ctx.GetStub().PutState(id, assetJSON2)
+	} else if status == "file" && types == "FarmEvent" {
+		var ipfsCert []FarmFile
+		if err1 := json.Unmarshal([]byte(data), &ipfsCert); err1 != nil {
+			// fmt.Println("Error parsing JSON1:", err1)
+			return false, fmt.Errorf("the ipfs image data error %v", err1)
+		}
+		assetJSON, err := ctx.GetStub().GetState(id)
+		if err != nil {
+			return false, fmt.Errorf("failed to read farm data from world state: %v", err)
+		}
+		if assetJSON == nil {
+			return false, fmt.Errorf("the farm %s does not exist", id)
+		}
+		var farm Farm
+		err = json.Unmarshal(assetJSON, &farm)
+		if err != nil {
+			return false, fmt.Errorf("unmarshall farm data: %v", err)
+		}
+		farm.FarmFile = ipfsCert
+
+		assetJSON2, err4 := json.Marshal(farm)
+		if err4 != nil {
+			return false, fmt.Errorf("the asset json %s already exists", assetJSON2)
+		}
+		ctx.GetStub().PutState(id, assetJSON2)
+	} else {
+		var ipfsCert []FarmFile
+		if err1 := json.Unmarshal([]byte(data), &ipfsCert); err1 != nil {
+			// fmt.Println("Error parsing JSON1:", err1)
+			return false, fmt.Errorf("the ipfs image data error %v", err1)
+		}
+		assetJSON, err := ctx.GetStub().GetState(id)
+		if err != nil {
+			return false, fmt.Errorf("failed to read farm data from world state: %v", err)
+		}
+		if assetJSON == nil {
+			return false, fmt.Errorf("the farm %s does not exist", id)
+		}
+		var crop CropDetails
+		err = json.Unmarshal(assetJSON, &crop)
+		if err != nil {
+			return false, fmt.Errorf("unmarshall farm data: %v", err)
+		}
+		crop.FarmFile = ipfsCert
+
+		assetJSON2, err4 := json.Marshal(crop)
+		if err4 != nil {
+			return false, fmt.Errorf("the asset json %s already exists", assetJSON2)
+		}
+		ctx.GetStub().PutState(id, assetJSON2)
+	}
+	// Changes the endorsement policy to the new owner org
+	endorsingOrgs := []string{"Org1MSP"}
+	err1 := setAssetStateBasedEndorsement(ctx, id, endorsingOrgs)
+	if err1 != nil {
+		return false, fmt.Errorf("failed setting state based endorsement for new owner: %v", err1)
+	}
+
+	return true, nil
+}
+
 // GetAssetHistory returns the chain of custody for an asset since issuance.
 func (s *SmartContract) GetAllTrazeHistoryById(ctx contractapi.TransactionContextInterface, assetID string) ([]HistoryQueryResult, error) {
 	// log.Printf("GetAssetHistory: ID %v", assetID)
@@ -2112,13 +2212,46 @@ func (s *SmartContract) TrazeKdesTransfer(ctx contractapi.TransactionContextInte
 			return false, fmt.Errorf("the asset json %s already exists", assetJSON2)
 		}
 		ctx.GetStub().PutState(id, assetJSON2)
+
 		// Changes the endorsement policy to the new owner org
 		endorsingOrgs := []string{"Org2MSP"}
-		err1 := setAssetStateBasedEndorsement(ctx, id, endorsingOrgs)
+		err1 := setAssetStateBasedEndorsement(ctx, kdes.FTLCID, endorsingOrgs)
 		if err1 != nil {
 			return false, fmt.Errorf("failed setting state based endorsement for new owner: %v", err1)
 		}
 	}
+	return true, nil
+}
+
+// ReadAsset returns the asset stored in the world state with given id.
+func (s *SmartContract) TrazeKdesTransfer1(ctx contractapi.TransactionContextInterface, id string, typeOrg string) (bool, error) {
+	assetJSON, err := ctx.GetStub().GetState(id)
+	if err != nil {
+		return false, fmt.Errorf("failed to read farm data from world state: %v", err)
+	}
+	if assetJSON == nil {
+		return false, fmt.Errorf("the farm %s does not exist", id)
+	}
+	// if typeOrg == "Producer" {
+	var kdes ShippingingKdes
+	err = json.Unmarshal(assetJSON, &kdes)
+	if err != nil {
+		return false, fmt.Errorf("unmarshall farm data: %v", err)
+	}
+	kdes.IsAccepted = typeOrg
+
+	assetJSON2, err4 := json.Marshal(kdes)
+	if err4 != nil {
+		return false, fmt.Errorf("the asset json %s already exists", assetJSON2)
+	}
+	ctx.GetStub().PutState(id, assetJSON2)
+	// Changes the endorsement policy to the new owner org
+	endorsingOrgs := []string{"Org2MSP"}
+	err1 := setAssetStateBasedEndorsement(ctx, kdes.FTLCID, endorsingOrgs)
+	if err1 != nil {
+		return false, fmt.Errorf("failed setting state based endorsement for new owner: %v", err1)
+	}
+	// }
 	return true, nil
 }
 

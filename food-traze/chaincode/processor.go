@@ -19,8 +19,8 @@ func (s *SmartContract) GetAllRecevingKdes(ctx contractapi.TransactionContextInt
 
 	var data []map[string]interface{}
 	// if types == "ShippingKdesEvent" {
-	// queryString := fmt.Sprintf("{\"selector\":{\"DocType\":\"%s\",\"ReceiverInformation.ReceiverId\":\"%s\",\"Status\":\"%s\",\"IsAccepted\":\"%s\"}}", "ShippingKdes", "3", "Transfered", "0")
-	queryString := fmt.Sprintf("{\"selector\":{\"DocType\":\"%s\",\"ReceiverInformation.ReceiverId\":\"%s\",\"Status\":\"%s\"}}", "ShippingKdes","3", "Transfered")
+	queryString := fmt.Sprintf("{\"selector\":{\"DocType\":\"%s\",\"ReceiverInformation.ReceiverId\":\"%s\",\"Status\":\"%s\",\"IsAccepted\":\"%s\"}}", "ShippingKdes", userId, status, accept)
+	// queryString := fmt.Sprintf("{\"selector\":{\"DocType\":\"%s\",\"ReceiverInformation.ReceiverId\":\"%s\",\"Status\":\"%s\"}}", "ShippingKdes","3", "Transfered")
 	// queryString := fmt.Sprintf(`{"selector":{"FarmID":"%s"}}`, farmId)
 	resultsIterator, err := ctx.GetStub().GetQueryResult(queryString)
 	if err != nil {
@@ -46,6 +46,41 @@ func (s *SmartContract) GetAllRecevingKdes(ctx contractapi.TransactionContextInt
 	// data["Product"] = assets
 	// }
 	return data, nil
+	// return &response, nil
+}
+
+
+
+// Update a asset is accepted in the world state with given id.
+func (s *SmartContract) UpdateRecevingKdesAccept(ctx contractapi.TransactionContextInterface, id string, accept string) (bool, error) {
+	// Use the logger to print a message
+	// var logger *logrus.Logger
+	// logger.Info("Init function called")
+	assetJSON, err := ctx.GetStub().GetState(id)
+	if err != nil {
+		return false, fmt.Errorf("failed to read farm data from world state: %v", err)
+	}
+	if assetJSON == nil {
+		return false, fmt.Errorf("the farm %s does not exist", id)
+	}
+	var jsonData ShippingingKdes
+
+	// Unmarshal the byte array into the empty interface
+	err = json.Unmarshal(assetJSON, &jsonData)
+	if err != nil {
+		fmt.Println("Error:", err)
+		return false, fmt.Errorf("failed to unmarshal data: %s", err.Error())
+	}
+	jsonData.IsAccepted = accept
+	// data["Product"] = assets
+	// }
+	assetJSON2, err4 := json.Marshal(jsonData)
+	if err4 != nil {
+		return false, fmt.Errorf("the asset json %s already exists", id)
+	}
+	ctx.GetStub().PutState(id, assetJSON2)
+
+	return true, nil
 	// return &response, nil
 }
 
