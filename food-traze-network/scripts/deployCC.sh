@@ -125,6 +125,7 @@ installChaincode() {
   setGlobals $ORG
   set -x
   peer lifecycle chaincode install ${CC_NAME}.tar.gz >&log.txt
+  infoln "res"
   res=$?
   { set +x; } 2>/dev/null
   cat log.txt
@@ -352,6 +353,7 @@ queryCommitted 5
 ## method defined
 if [ "$CC_INIT_FCN" = "NA" ]; then
   infoln "Chaincode initialization is not required"
+  infoln "Chaicode run successfully"
 else
   chaincodeInvokeInit 1 2 4 5
 fi
