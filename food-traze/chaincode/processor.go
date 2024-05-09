@@ -124,7 +124,7 @@ func (s *SmartContract) GetAllRecevingKdes(ctx contractapi.TransactionContextInt
 
 	var data []map[string]interface{}
 	// if types == "ShippingKdesEvent" {
-	queryString := fmt.Sprintf("{\"selector\":{\"DocType\":\"%s\",\"ReceiverInformation.ReceiverId\":\"%s\",\"Status\":\"%s\",\"IsAccepted\":\"%s\"}}", "ShippingKdes", userId, status, accept)
+	queryString := fmt.Sprintf("{\"selector\":{\"DocType\":\"%s\",\"ReceiverInformation.ReceiverId\":\"%s\",\"Status\":\"%s\",\"IsAccepted\":\"%s\"}}", types, userId, status, accept)
 	// queryString := fmt.Sprintf("{\"selector\":{\"DocType\":\"%s\",\"ReceiverInformation.ReceiverId\":\"%s\",\"Status\":\"%s\"}}", "ShippingKdes","3", "Transfered")
 	// queryString := fmt.Sprintf(`{"selector":{"FarmID":"%s"}}`, farmId)
 	resultsIterator, err := ctx.GetStub().GetQueryResult(queryString)
