@@ -374,7 +374,7 @@ type Header struct {
 	EventWhere  string    `json:"eventWhere"`
 	Latitude    string    `json:"latitude"`
 	Longitude   string    `json:"longitude"`
-	CreatedDate time.Time `json:"CreatedDate"`
+	CreatedDate time.Time `json:"createdDate"`
 }
 
 type Products struct {
@@ -1985,7 +1985,7 @@ func (s *SmartContract) ReadTrazeById(ctx contractapi.TransactionContextInterfac
 // }
 
 // ReadAsset returns the asset stored in the world state with given id.
-func (s *SmartContract) GetAllTrazeByEvent(ctx contractapi.TransactionContextInterface, status string, userId string, filter1 string, filter2 string, filter3 string) ([]map[string]interface{}, error) {
+func (s *SmartContract) GetAllTrazeByEvent(ctx contractapi.TransactionContextInterface, status string, userId string, filter string) ([]map[string]interface{}, error) {
 
 	var data []map[string]interface{}
 	if status == "CropEvent" {
@@ -2173,21 +2173,9 @@ func (s *SmartContract) GetAllTrazeByEvent(ctx contractapi.TransactionContextInt
 		// data["Product"] = assets
 	}
 	if status == "HarvestingKdesEvent" {
-		// var queryString string
-
 		// queryString := fmt.Sprintf("{\"selector\":{\"DocType\":\"%s\",\"UserId\":\"%s\"}}", "HarvestingKdes", userId)
-		// if filter1 != "" {
-		// 	queryString = fmt.Sprintf("{\"selector\":{\"DocType\":\"%s\",\"UserId\":\"%s\",\"CropType\":\"%s\"}}", "HarvestingKdes", userId, filter1)
-		// } else if filter2 != "" {
-		// 	queryString = fmt.Sprintf("{\"selector\":{\"DocType\":\"%s\",\"UserId\":\"%s\",\"Headers.EventWhen\":\"%s\"}}", "HarvestingKdes", userId, filter2)
-		// } else if filter2 != "" && filter3 != "" {
-		// 	queryString = fmt.Sprintf("{\"selector\":{\"DocType\":\"%s\",\"UserId\":\"%s\",\"Headers.EventWhen\":{\"$gte\":%s,\"$lte\":%s}}}", "HarvestingKdes", userId, filter2, filter2)
-		// } else {
-		// 	queryString = fmt.Sprintf("{\"selector\":{\"DocType\":\"%s\",\"UserId\":\"%s\"}}", "HarvestingKdes", userId)
-		// }
-		// queryString := fmt.Sprintf(`{"selector":{"FarmID":"%s"}}`, farmId)
-		// query := "{\"selector\":{\"DocType\":\"HarvestingKdesEvent\"}}"
-		resultsIterator, err := ctx.GetStub().GetQueryResult(filter1)
+
+		resultsIterator, err := ctx.GetStub().GetQueryResult(filter)
 		if err != nil {
 			return nil, err
 		}
@@ -2211,9 +2199,9 @@ func (s *SmartContract) GetAllTrazeByEvent(ctx contractapi.TransactionContextInt
 		// data["Product"] = assets
 	}
 	if status == "InitialPackageKdesEvent" {
-		queryString := fmt.Sprintf("{\"selector\":{\"DocType\":\"%s\",\"UserId\":\"%s\"}}", "InitialPackageKdes", userId)
+		// queryString := fmt.Sprintf("{\"selector\":{\"DocType\":\"%s\",\"UserId\":\"%s\"}}", "InitialPackageKdes", userId)
 		// queryString := fmt.Sprintf(`{"selector":{"FarmID":"%s"}}`, farmId)
-		resultsIterator, err := ctx.GetStub().GetQueryResult(queryString)
+		resultsIterator, err := ctx.GetStub().GetQueryResult(filter)
 		if err != nil {
 			return nil, err
 		}
@@ -2237,9 +2225,9 @@ func (s *SmartContract) GetAllTrazeByEvent(ctx contractapi.TransactionContextInt
 		// data["Product"] = assets
 	}
 	if status == "ShippingKdesEvent" {
-		queryString := fmt.Sprintf("{\"selector\":{\"DocType\":\"%s\",\"UserId\":\"%s\"}}", "ShippingKdes", userId)
+		// queryString := fmt.Sprintf("{\"selector\":{\"DocType\":\"%s\",\"UserId\":\"%s\"}}", "ShippingKdes", userId)
 		// queryString := fmt.Sprintf(`{"selector":{"FarmID":"%s"}}`, farmId)
-		resultsIterator, err := ctx.GetStub().GetQueryResult(queryString)
+		resultsIterator, err := ctx.GetStub().GetQueryResult(filter)
 		if err != nil {
 			return nil, err
 		}
@@ -2568,7 +2556,7 @@ func (s *SmartContract) TrazeKdesTransfer(ctx contractapi.TransactionContextInte
 }
 
 // ReadAsset returns the asset stored in the world state with given id.
-func (s *SmartContract) TrazeKdesTransfer1(ctx contractapi.TransactionContextInterface, id string, typeOrg string) (bool, error) {
+func (s *SmartContract) TrazeKdesTransfer1(ctx contractapi.TransactionContextInterface, id string, value string, typeOrg string) (bool, error) {
 	assetJSON, err := ctx.GetStub().GetState(id)
 	if err != nil {
 		return false, fmt.Errorf("failed to read farm data from world state: %v", err)
@@ -2576,28 +2564,50 @@ func (s *SmartContract) TrazeKdesTransfer1(ctx contractapi.TransactionContextInt
 	if assetJSON == nil {
 		return false, fmt.Errorf("the farm %s does not exist", id)
 	}
-	// if typeOrg == "Producer" {
-	var kdes ShippingingKdes
-	err = json.Unmarshal(assetJSON, &kdes)
-	if err != nil {
-		return false, fmt.Errorf("unmarshall farm data: %v", err)
-	}
-	kdes.IsAccepted = typeOrg
+	if typeOrg == "Producer" {
+		var kdes ShippingingKdes
+		err = json.Unmarshal(assetJSON, &kdes)
+		if err != nil {
+			return false, fmt.Errorf("unmarshall farm data: %v", err)
+		}
+		kdes.IsAccepted = value
 
-	assetJSON2, err4 := json.Marshal(kdes)
-	if err4 != nil {
-		return false, fmt.Errorf("the asset json %s already exists", assetJSON2)
-	}
-	ctx.GetStub().PutState(id, assetJSON2)
+		assetJSON2, err4 := json.Marshal(kdes)
+		if err4 != nil {
+			return false, fmt.Errorf("the asset json %s already exists", assetJSON2)
+		}
+		ctx.GetStub().PutState(id, assetJSON2)
 
-	// ctx.GetStub().SetEndorsementPolicy([]byte(newPolicy))
-	// Changes the endorsement policy to the new owner org
-	endorsingOrgs := []string{"Org2MSP"}
-	err1 := setAssetStateBasedEndorsement(ctx, kdes.FTLCID, endorsingOrgs)
-	if err1 != nil {
-		return false, fmt.Errorf("failed setting state based endorsement for new owner: %v", err1)
+		// ctx.GetStub().SetEndorsementPolicy([]byte(newPolicy))
+		// Changes the endorsement policy to the new owner org
+		endorsingOrgs := []string{"Org2MSP"}
+		err1 := setAssetStateBasedEndorsement(ctx, kdes.FTLCID, endorsingOrgs)
+		if err1 != nil {
+			return false, fmt.Errorf("failed setting state based endorsement for new owner: %v", err1)
+		}
 	}
-	// }
+	if typeOrg == "Processor" {
+		var kdes ProcessorShippingingKdes
+		err = json.Unmarshal(assetJSON, &kdes)
+		if err != nil {
+			return false, fmt.Errorf("unmarshall farm data: %v", err)
+		}
+		kdes.IsAccepted = value
+
+		assetJSON2, err4 := json.Marshal(kdes)
+		if err4 != nil {
+			return false, fmt.Errorf("the asset json %s already exists", assetJSON2)
+		}
+		ctx.GetStub().PutState(id, assetJSON2)
+
+		// ctx.GetStub().SetEndorsementPolicy([]byte(newPolicy))
+		// Changes the endorsement policy to the new owner org
+		endorsingOrgs := []string{"Org3MSP"}
+		err1 := setAssetStateBasedEndorsement(ctx, kdes.FTLCID, endorsingOrgs)
+		if err1 != nil {
+			return false, fmt.Errorf("failed setting state based endorsement for new owner: %v", err1)
+		}
+	}
 	return true, nil
 }
 
@@ -2621,8 +2631,7 @@ func (s *SmartContract) UpdateKdesStatus(ctx contractapi.TransactionContextInter
 	if err4 != nil {
 		return false, fmt.Errorf("the asset json %s already exists", assetJSON2)
 	}
-	res := ctx.GetStub().PutState(id, assetJSON2)
-	fmt.Printf("Res", res)
+	ctx.GetStub().PutState(id, assetJSON2)
 	// ctx.GetStub().SetEndorsementPolicy([]byte(newPolicy))
 	// Changes the endorsement policy to the new owner org
 	endorsingOrgs := []string{"Org2MSP"}
