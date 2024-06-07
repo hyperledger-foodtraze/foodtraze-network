@@ -1,0 +1,47 @@
+# Server Configuration #
+# Logs #
+logs
+*.log
+*.log*
+
+# Node files #
+node_modules/
+npm-debug.log
+package-lock.json
+yarn-error.log
+
+# OS generated files #
+.DS_Store
+Thumbs.db
+.tmp/
+src/schema.gql
+
+# Typing #
+typings/
+
+# IDE #
+.idea/
+*.swp
+.awcache
+
+# Generated source-code #
+src/**/*.js
+src/**/*.js.map
+src/public/apidoc/
+test/**/*.js
+test/**/*.js.map
+coverage/
+!test/preprocessor.js
+
+# Uploads #
+uploads/
+*.zip
+
+# Vendors #
+food-traze/vendor/
+
+# Env files #
+.env
+.env.production
+.env.qa
+.env.development
