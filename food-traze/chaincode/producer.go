@@ -97,6 +97,7 @@ type Farm struct {
 	UserId               string                `json:"UserId"`
 	Headers              *Header               `json:"Headers"`
 	AliasOrgName         string                `json:"AliasOrgName"`
+	UserName             string                `json:"UserName"`
 }
 
 type CropDetails struct {
@@ -118,6 +119,7 @@ type CropDetails struct {
 	UserId          string          `json:"UserId"`
 	Headers         *Header         `json:"Headers"`
 	AliasOrgName    string          `json:"AliasOrgName"`
+	UserName        string          `json:"UserName"`
 }
 
 type FertilizerPesticideEvent struct {
@@ -136,6 +138,7 @@ type FertilizerPesticideEvent struct {
 	UserId            string          `json:"UserId"`
 	Headers           *Header         `json:"Headers"`
 	AliasOrgName      string          `json:"AliasOrgName"`
+	UserName          string          `json:"UserName"`
 }
 
 type IrrigationEvent struct {
@@ -155,6 +158,7 @@ type IrrigationEvent struct {
 	UserId           string          `json:"UserId"`
 	Headers          *Header         `json:"Headers"`
 	AliasOrgName     string          `json:"AliasOrgName"`
+	UserName         string          `json:"UserName"`
 }
 
 type QualityAssessment struct {
@@ -179,6 +183,7 @@ type HarvestingEvent struct {
 	UserId            string             `json:"UserId"`
 	Headers           *Header            `json:"Headers"`
 	AliasOrgName      string             `json:"AliasOrgName"`
+	UserName          string             `json:"UserName"`
 }
 
 //	type NutritionalContent struct {
@@ -208,6 +213,7 @@ type LabTestingEvent struct {
 	UserId          string          `json:"UserId"`
 	Headers         *Header         `json:"Headers"`
 	AliasOrgName    string          `json:"AliasOrgName"`
+	UserName        string          `json:"UserName"`
 }
 type Distribution struct {
 	Distributor      *Distributor `json:"Distributor"`
@@ -238,6 +244,7 @@ type ProductDetail struct {
 	Participants    *Participants   `json:"Participants"`
 	BlockchainInfos *BlockchainInfo `json:"BlockchainInfos"`
 	UserId          string          `json:"UserId"`
+	UserName        string          `json:"UserName"`
 }
 type QuantityHarvested struct {
 	Value string `json:"Value"`
@@ -620,7 +627,7 @@ func (s *SmartContract) EndorseChange(ctx contractapi.TransactionContextInterfac
 	return response, nil
 }
 
-func (s *SmartContract) FoodTrazeCreate(ctx contractapi.TransactionContextInterface, status string, data1 string, data2 string, data3 string, data4 string, data5 string, data6 string, data7 string, data8 string, data9 string, data10 string, data11 string, data12 string, data13 string, data14 string) (interface{}, error) {
+func (s *SmartContract) FoodTrazeCreate(ctx contractapi.TransactionContextInterface, status string, data1 string, data2 string, data3 string, data4 string, data5 string, data6 string, data7 string, data8 string, data9 string, data10 string, data11 string, data12 string, data13 string, data14 string, data15 string) (interface{}, error) {
 	var response FoodTazeRes
 	if status == "CropCreateEvent" {
 
@@ -672,6 +679,7 @@ func (s *SmartContract) FoodTrazeCreate(ctx contractapi.TransactionContextInterf
 			DocType:         "Crop",
 			Headers:         &headerContent,
 			AliasOrgName:    "Producer",
+			UserName:        data15,
 		}
 		assetJSON, err4 := json.Marshal(asset)
 		if err4 != nil {
@@ -795,6 +803,7 @@ func (s *SmartContract) FoodTrazeCreate(ctx contractapi.TransactionContextInterf
 			UserId:       data12,
 			Headers:      &headerContent,
 			AliasOrgName: "Producer",
+			UserName:     data15,
 		}
 		assetJSON, err4 := json.Marshal(asset)
 		if err4 != nil {
@@ -855,6 +864,7 @@ func (s *SmartContract) FoodTrazeCreate(ctx contractapi.TransactionContextInterf
 			BlockchainInfos:   &blockChainInfo,
 			Headers:           &headerContent,
 			AliasOrgName:      "Producer",
+			UserName:          data14,
 		}
 		assetJSON, err4 := json.Marshal(asset)
 		if err4 != nil {
@@ -914,6 +924,7 @@ func (s *SmartContract) FoodTrazeCreate(ctx contractapi.TransactionContextInterf
 			BlockchainInfos:  &blockChainInfo,
 			Headers:          &headerContent,
 			AliasOrgName:     "Producer",
+			UserName:         data15,
 		}
 		assetJSON, err4 := json.Marshal(asset)
 		if err4 != nil {
@@ -981,6 +992,7 @@ func (s *SmartContract) FoodTrazeCreate(ctx contractapi.TransactionContextInterf
 			BlockchainInfos:   &blockChainInfo,
 			Headers:           &headerContent,
 			AliasOrgName:      "Producer",
+			UserName:          data14,
 		}
 		assetJSON, err4 := json.Marshal(asset)
 		if err4 != nil {
@@ -1049,6 +1061,7 @@ func (s *SmartContract) FoodTrazeCreate(ctx contractapi.TransactionContextInterf
 			BlockchainInfos: &blockChainInfo,
 			Headers:         &headerContent,
 			AliasOrgName:    "Producer",
+			UserName:        data14,
 		}
 		assetJSON, err4 := json.Marshal(asset)
 		if err4 != nil {
@@ -1114,6 +1127,7 @@ func (s *SmartContract) FoodTrazeCreate(ctx contractapi.TransactionContextInterf
 			Participants:    &participantContent,
 			BlockchainInfos: &blockChainInfo,
 			UserId:          data13,
+			UserName:        data14,
 		}
 		assetJSON, err4 := json.Marshal(asset)
 		if err4 != nil {
@@ -3004,6 +3018,44 @@ func (s *SmartContract) UpdateShippingKdesStatus(ctx contractapi.TransactionCont
 	}
 	// }
 	return true, nil
+}
+
+// ReadAsset returns the asset stored in the world state with given id.
+func (s *SmartContract) FoodTrazeability(ctx contractapi.TransactionContextInterface, filter string) ([]map[string]interface{}, error) {
+
+	var data []map[string]interface{}
+	// if status == "CropEvent" {
+	// var asset CropDetails
+	// err = json.Unmarshal(assetJSON, &asset)
+	// if err != nil {
+	// 	return nil, fmt.Errorf("the unmarshall error %s", err)
+	// }
+
+	// queryString := fmt.Sprintf("{\"selector\":{\"DocType\":\"%s\",\"UserId\":\"%s\"}}", "Crop", userId)
+	// queryString := fmt.Sprintf(`{"selector":{"FarmID":"%s"}}`, farmId)
+	resultsIterator, err := ctx.GetStub().GetQueryResult(filter)
+	if err != nil {
+		return nil, err
+	}
+	defer resultsIterator.Close()
+
+	// var assets []map[string]interface{}
+	for resultsIterator.HasNext() {
+		queryResponse, err := resultsIterator.Next()
+		if err != nil {
+			return nil, err
+		}
+
+		var asset map[string]interface{}
+		err = json.Unmarshal(queryResponse.Value, &asset)
+		if err != nil {
+			return nil, err
+		}
+		data = append(data, asset)
+	}
+
+	// }
+	return data, nil
 }
 
 // GetAllFarms returns all assets found in world state

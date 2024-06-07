@@ -38,7 +38,7 @@ uploads/
 *.zip
 
 # Vendors #
-food-traze/vendor
+food-traze/vendor/
 
 # Env files #
 .env
