@@ -353,7 +353,6 @@ queryCommitted 5
 ## method defined
 if [ "$CC_INIT_FCN" = "NA" ]; then
   infoln "Chaincode initialization is not required"
-  infoln "Chaicode run successfully"
 else
   chaincodeInvokeInit 1 2 4 5
 fi
