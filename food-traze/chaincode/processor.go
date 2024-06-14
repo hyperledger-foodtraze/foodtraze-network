@@ -16,8 +16,6 @@ import (
 // 	contractapi.Contract
 // }
 
-
-
 // ReadAsset returns the asset stored in the world state with given id.
 func (s *SmartContract) GetAllRecevingKdes(ctx contractapi.TransactionContextInterface, types string, userId string, status string, accept string) ([]map[string]interface{}, error) {
 
@@ -76,6 +74,7 @@ func (s *SmartContract) UpdateRecevingKdesAccept(ctx contractapi.TransactionCont
 	jsonData.IsAccepted = accept
 	// data["Product"] = assets
 	// }
+	fmt.Println("jsonData", jsonData)
 	assetJSON2, err4 := json.Marshal(jsonData)
 	if err4 != nil {
 		return false, fmt.Errorf("the asset json %s already exists", id)
