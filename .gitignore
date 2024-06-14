@@ -10,6 +10,12 @@ npm-debug.log
 package-lock.json
 yarn-error.log
 
+# Network folder #
+food-traze-network/
+bin/
+config/
+
+
 # OS generated files #
 .DS_Store
 Thumbs.db
