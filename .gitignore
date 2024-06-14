@@ -10,11 +10,10 @@ npm-debug.log
 package-lock.json
 yarn-error.log
 
-# Network folder #
-food-traze-network/
+# Network Folder #
+food-tarce-network/
 bin/
 config/
-
 
 # OS generated files #
 .DS_Store
@@ -42,9 +41,6 @@ coverage/
 # Uploads #
 uploads/
 *.zip
-
-# Vendors #
-food-traze/vendor/
 
 # Env files #
 .env
