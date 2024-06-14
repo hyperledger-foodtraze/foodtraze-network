@@ -777,7 +777,7 @@ func (s *SmartContract) FoodTrazeCreate(ctx contractapi.TransactionContextInterf
 		blockChainInfo.ClientId = clientId
 		blockChainInfo.ChannelId = channelId
 		blockChainInfo.Timestamp = timestamp
-		fmt.Println("blockChainInfo", blockChainInfo)
+
 		var headerContent Header
 		if err1 := json.Unmarshal([]byte(data14), &headerContent); err1 != nil {
 			// fmt.Println("Error parsing JSON1:", err1)
