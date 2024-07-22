@@ -185,12 +185,12 @@ type CropDetails struct {
 // }
 
 type FertilizerEvent struct {
-	FTLCID              string          `json:"FTLCID"`
-	CropID              string          `json:"CropID"`
-	EventID             string          `json:"EventID"`
-	EventType           string          `json:"EventType"`
-	DateOfApplication   string          `json:"DateOfApplication"`
-	FertilizerUsed      string          `json:"FertilizerUsed"`
+	FTLCID            string `json:"FTLCID"`
+	CropID            string `json:"CropID"`
+	EventID           string `json:"EventID"`
+	EventType         string `json:"EventType"`
+	DateOfApplication string `json:"DateOfApplication"`
+	// FertilizerUsed      string          `json:"FertilizerUsed"`
 	ApplicationRate     string          `json:"ApplicationRate"`
 	Unit                string          `json:"Unit"`
 	MethodOfApplication string          `json:"MethodOfApplication"`
@@ -208,26 +208,46 @@ type FertilizerEvent struct {
 	CropName            string          `json:"CropName"`
 }
 
+//	type IrrigationEvent struct {
+//		FTLCID           string          `json:"FTLCID"`
+//		CropID           string          `json:"CropID"`
+//		EventID          string          `json:"EventID"`
+//		EventType        string          `json:"EventType"`
+//		EventDate        string          `json:"EventDate"`
+//		Details          string          `json:"Details"`
+//		ResponsibleParty string          `json:"ResponsibleParty"`
+//		FarmName         string          `json:"FarmName"`
+//		QuantityUsed     int             `json:"QuantityUsed"`
+//		Unit             string          `json:"Unit"`
+//		WaterSource      string          `json:"WaterSource"`
+//		IrrigationMethod string          `json:"IrrigationMethod"`
+//		BlockchainInfos  *BlockchainInfo `json:"BlockchainInfos"`
+//		UserId           string          `json:"UserId"`
+//		Headers          *Header         `json:"Headers"`
+//		AliasOrgName     string          `json:"AliasOrgName"`
+//		UserName         string          `json:"UserName"`
+//		IrrigationImage  []Image         `json:"IrrigationImage"`
+//		CropName         string          `json:"CropName"`
+//	}
 type IrrigationEvent struct {
-	FTLCID           string          `json:"FTLCID"`
-	CropID           string          `json:"CropID"`
-	EventID          string          `json:"EventID"`
-	EventType        string          `json:"EventType"`
-	EventDate        string          `json:"EventDate"`
-	Details          string          `json:"Details"`
-	ResponsibleParty string          `json:"ResponsibleParty"`
-	FarmName         string          `json:"FarmName"`
-	QuantityUsed     int             `json:"QuantityUsed"`
-	Unit             string          `json:"Unit"`
-	WaterSource      string          `json:"WaterSource"`
-	IrrigationMethod string          `json:"IrrigationMethod"`
-	BlockchainInfos  *BlockchainInfo `json:"BlockchainInfos"`
-	UserId           string          `json:"UserId"`
-	Headers          *Header         `json:"Headers"`
-	AliasOrgName     string          `json:"AliasOrgName"`
-	UserName         string          `json:"UserName"`
-	IrrigationImage  []Image         `json:"IrrigationImage"`
-	CropName         string          `json:"CropName"`
+	FTLCID             string          `json:"FTLCID"`
+	CropID             string          `json:"CropID"`
+	EventID            string          `json:"EventID"`
+	EventType          string          `json:"EventType"`
+	DateOfIrrigation   string          `json:"DateOfIrrigation"`
+	TimeOfIrrigation   string          `json:"TimeOfIrrigation"`
+	FieldId            string          `json:"FieldId"`
+	SourceOfWater      string          `json:"SourceOfWater"`
+	StageOfCrop        string          `json:"StageOfCrop"`
+	Comments           string          `json:"Comments"`
+	MethodOfIrrigation string          `json:"MethodOfIrrigation"`
+	BlockchainInfos    *BlockchainInfo `json:"BlockchainInfos"`
+	UserId             string          `json:"UserId"`
+	Headers            *Header         `json:"Headers"`
+	AliasOrgName       string          `json:"AliasOrgName"`
+	UserName           string          `json:"UserName"`
+	IrrigationImage    []Image         `json:"IrrigationImage"`
+	CropName           string          `json:"CropName"`
 }
 
 type QualityAssessment struct {
@@ -289,7 +309,7 @@ type HarvestingEvent struct {
 type TestResults struct {
 	PesticideResidue string `json:"PesticideResidue"`
 	// NutritionalContent     *NutritionalContent `json:"NutritionalContent"`
-	NutritionalContent     string `json:"NutritionalContent"`
+	// NutritionalContent     string `json:"NutritionalContent"`
 	MicrobialContamination string `json:"MicrobialContamination"`
 	AllergenPresence       string `json:"AllergenPresence"`
 }
@@ -301,9 +321,10 @@ type LabTestingEvent struct {
 	EventID         string          `json:"EventID"`
 	EventType       string          `json:"EventType"`
 	EventDate       string          `json:"EventDate"`
-	Details         string          `json:"Details"`
+	ResultFile      []File          `json:"ResultFile"`
 	TestedBy        string          `json:"TestedBy"`
 	TestResults     *TestResults    `json:"TestResults"`
+	TypeOfSample    string          `json:"TypeOfSample"`
 	BlockchainInfos *BlockchainInfo `json:"BlockchainInfos"`
 	UserId          string          `json:"UserId"`
 	Headers         *Header         `json:"Headers"`
@@ -327,7 +348,7 @@ type PesticideEvent struct {
 	Headers             *Header         `json:"Headers"`
 	AliasOrgName        string          `json:"AliasOrgName"`
 	UserName            string          `json:"UserName"`
-	PesticideImage      []Image         `json:"FertilizerImage"`
+	PesticideImage      []Image         `json:"PesticideImage"`
 	CropId              string          `json:"CropId"`
 	CropName            string          `json:"CropName"`
 	TargetPest          string          `json:"TargetPest"`
@@ -1066,7 +1087,7 @@ func (s *SmartContract) FoodTrazeCreate(ctx contractapi.TransactionContextInterf
 			EventID:             data3,
 			EventType:           data4,
 			DateOfApplication:   data5,
-			FertilizerUsed:      data6,
+			FertilizerName:      data6,
 			ApplicationRate:     data7,
 			Unit:                data8,
 			MethodOfApplication: data9,
@@ -1079,9 +1100,9 @@ func (s *SmartContract) FoodTrazeCreate(ctx contractapi.TransactionContextInterf
 			BlockchainInfos:     &blockChainInfo,
 			Headers:             &headerContent,
 			AliasOrgName:        "Producer",
-			FertilizerName:      data15,
-			FertilizerImage:     image,
-			CropName:            data18,
+			// FertilizerName:      data15,
+			FertilizerImage: image,
+			CropName:        data18,
 		}
 		assetJSON, err4 := json.Marshal(asset)
 		if err4 != nil {
@@ -1183,7 +1204,7 @@ func (s *SmartContract) FoodTrazeCreate(ctx contractapi.TransactionContextInterf
 		blockChainInfo.ClientId = clientId
 		blockChainInfo.ChannelId = channelId
 		blockChainInfo.Timestamp = timestamp
-		quality, _ := strconv.Atoi(data7)
+		// quality, _ := strconv.Atoi(data7)
 		var headerContent Header
 		if err1 := json.Unmarshal([]byte(data13), &headerContent); err1 != nil {
 			// fmt.Println("Error parsing JSON1:", err1)
@@ -1191,31 +1212,30 @@ func (s *SmartContract) FoodTrazeCreate(ctx contractapi.TransactionContextInterf
 		}
 		var image []Image
 		if data16 != "" {
-			if err1 := json.Unmarshal([]byte(data16), &image); err1 != nil {
+			if err1 := json.Unmarshal([]byte(data15), &image); err1 != nil {
 				// fmt.Println("Error parsing JSON1:", err1)
 				return nil, fmt.Errorf("the ipfs image data error %v", err1)
 			}
 		}
 		asset := IrrigationEvent{
-			FTLCID:           data11,
-			CropID:           data1,
-			EventID:          data2,
-			EventType:        data3,
-			EventDate:        data4,
-			Details:          data5,
-			ResponsibleParty: data6,
-			FarmName:         data14,
-			QuantityUsed:     quality,
-			Unit:             data8,
-			WaterSource:      data9,
-			IrrigationMethod: data10,
-			UserId:           data12,
-			BlockchainInfos:  &blockChainInfo,
-			Headers:          &headerContent,
-			AliasOrgName:     "Producer",
-			UserName:         data15,
-			IrrigationImage:  image,
-			CropName:         data17,
+			FTLCID:             data1,
+			CropID:             data2,
+			EventID:            data3,
+			EventType:          data4,
+			DateOfIrrigation:   data5,
+			TimeOfIrrigation:   data6,
+			FieldId:            data7,
+			SourceOfWater:      data8,
+			StageOfCrop:        data9,
+			Comments:           data10,
+			MethodOfIrrigation: data11,
+			UserId:             data12,
+			BlockchainInfos:    &blockChainInfo,
+			Headers:            &headerContent,
+			AliasOrgName:       "Producer",
+			UserName:           data14,
+			IrrigationImage:    image,
+			CropName:           data16,
 		}
 		assetJSON, err4 := json.Marshal(asset)
 		if err4 != nil {
@@ -1330,8 +1350,8 @@ func (s *SmartContract) FoodTrazeCreate(ctx contractapi.TransactionContextInterf
 		// }
 		// Parse JSON data into Asset struct
 		testResultData := TestResults{
-			PesticideResidue:       data7,
-			NutritionalContent:     data8,
+			PesticideResidue: data8,
+			// NutritionalContent:     data8,
 			MicrobialContamination: data9,
 			AllergenPresence:       data10,
 		}
@@ -1346,32 +1366,40 @@ func (s *SmartContract) FoodTrazeCreate(ctx contractapi.TransactionContextInterf
 		blockChainInfo.ChannelId = channelId
 		blockChainInfo.Timestamp = timestamp
 		var headerContent Header
-		if err1 := json.Unmarshal([]byte(data13), &headerContent); err1 != nil {
+		if err1 := json.Unmarshal([]byte(data12), &headerContent); err1 != nil {
 			// fmt.Println("Error parsing JSON1:", err1)
 			return nil, fmt.Errorf("the participant error %v", err1)
 		}
 		var image []Image
+		if data14 != "" {
+			if err1 := json.Unmarshal([]byte(data14), &image); err1 != nil {
+				// fmt.Println("Error parsing JSON1:", err1)
+				return nil, fmt.Errorf("the ipfs image data error %v", err1)
+			}
+		}
+		var file []File
 		if data15 != "" {
-			if err1 := json.Unmarshal([]byte(data15), &image); err1 != nil {
+			if err1 := json.Unmarshal([]byte(data15), &file); err1 != nil {
 				// fmt.Println("Error parsing JSON1:", err1)
 				return nil, fmt.Errorf("the ipfs image data error %v", err1)
 			}
 		}
 		asset := LabTestingEvent{
-			FTLCID:          data11,
-			CropID:          data1,
-			EventID:         data2,
-			EventType:       data3,
-			EventDate:       data4,
-			Details:         data5,
-			TestedBy:        data6,
+			FTLCID:          data1,
+			CropID:          data2,
+			EventID:         data3,
+			EventType:       data4,
+			EventDate:       data5,
+			TypeOfSample:    data6,
+			TestedBy:        data7,
 			TestResults:     &testResultData,
-			UserId:          data12,
+			UserId:          data11,
 			BlockchainInfos: &blockChainInfo,
 			Headers:         &headerContent,
 			AliasOrgName:    "Producer",
-			UserName:        data14,
+			UserName:        data13,
 			LabTestingImage: image,
+			ResultFile:      file,
 			CropName:        data16,
 		}
 		assetJSON, err4 := json.Marshal(asset)
@@ -1399,7 +1427,7 @@ func (s *SmartContract) FoodTrazeCreate(ctx contractapi.TransactionContextInterf
 			Data:    result,
 		}
 	}
-	if status == "ObervationsEvent" {
+	if status == "ObservationsEvent" {
 		channelId := ctx.GetStub().GetChannelID()
 		transactionId := ctx.GetStub().GetTxID()
 		clientId, _ := ctx.GetClientIdentity().GetID()
@@ -1518,11 +1546,11 @@ func (s *SmartContract) FoodTrazeCreate(ctx contractapi.TransactionContextInterf
 		// }
 
 		// result := ctx.GetStub().PutState(farmKey, assetJSON)
-		result := ctx.GetStub().PutState(asset.FTLCID, assetJSON)
+		result := ctx.GetStub().PutState(data1, assetJSON)
 
 		// Changes the endorsement policy to the new owner org
 		endorsingOrgs := []string{"Org1MSP"}
-		err1 := setAssetStateBasedEndorsement(ctx, asset.FTLCID, endorsingOrgs)
+		err1 := setAssetStateBasedEndorsement(ctx, data1, endorsingOrgs)
 		if err1 != nil {
 			return "", fmt.Errorf("failed setting state based endorsement for new owner: %v", err1)
 		}
@@ -2466,7 +2494,7 @@ func (s *SmartContract) GetAllHarvestByCropId(ctx contractapi.TransactionContext
 	assets["Crop"] = asset
 
 	// Started To check Type as Fertilization
-	queryString1 := fmt.Sprintf("{\"selector\":{\"CropID\":\"%s\",\"EventType\":\"%s\"}}", asset.CropID, "Fertilization")
+	queryString1 := fmt.Sprintf("{\"selector\":{\"CropID\":\"%s\",\"EventType\":\"%s\"}}", cropId, "Fertilization")
 	resultsIterator1, err := ctx.GetStub().GetQueryResult(queryString1)
 	if err != nil {
 		return nil, fmt.Errorf("the selector %s not exists", cropId)
@@ -2495,7 +2523,7 @@ func (s *SmartContract) GetAllHarvestByCropId(ctx contractapi.TransactionContext
 	}
 
 	// Started To check Type as Irrigation
-	queryString2 := fmt.Sprintf("{\"selector\":{\"CropID\":\"%s\",\"EventType\":\"%s\"}}", asset.CropID, "Irrigation")
+	queryString2 := fmt.Sprintf("{\"selector\":{\"CropID\":\"%s\",\"EventType\":\"%s\"}}", cropId, "Irrigation")
 	resultsIterator2, err := ctx.GetStub().GetQueryResult(queryString2)
 	if err != nil {
 		return nil, fmt.Errorf("the selector %s not exists", cropId)
@@ -2524,7 +2552,7 @@ func (s *SmartContract) GetAllHarvestByCropId(ctx contractapi.TransactionContext
 	}
 
 	// Started To check Type as Harvesting
-	queryString3 := fmt.Sprintf("{\"selector\":{\"CropID\":\"%s\",\"EventType\":\"%s\"}}", asset.CropID, "Harvesting")
+	queryString3 := fmt.Sprintf("{\"selector\":{\"CropID\":\"%s\",\"EventType\":\"%s\"}}", cropId, "Harvesting")
 	resultsIterator3, err := ctx.GetStub().GetQueryResult(queryString3)
 	if err != nil {
 		return nil, fmt.Errorf("the selector %s not exists", cropId)
@@ -2553,7 +2581,7 @@ func (s *SmartContract) GetAllHarvestByCropId(ctx contractapi.TransactionContext
 	}
 
 	// Started To check Type as LabTesting
-	queryString4 := fmt.Sprintf("{\"selector\":{\"CropID\":\"%s\",\"EventType\":\"%s\"}}", asset.CropID, "LabTesting")
+	queryString4 := fmt.Sprintf("{\"selector\":{\"CropID\":\"%s\",\"EventType\":\"%s\"}}", cropId, "LabTesting")
 	resultsIterator4, err := ctx.GetStub().GetQueryResult(queryString4)
 	if err != nil {
 		return nil, fmt.Errorf("the selector %s not exists", cropId)
@@ -2580,7 +2608,63 @@ func (s *SmartContract) GetAllHarvestByCropId(ctx contractapi.TransactionContext
 	} else {
 		assets["LabTesting"] = asset4
 	}
+	// Started To check Type as Pesticide
+	queryString5 := fmt.Sprintf("{\"selector\":{\"CropID\":\"%s\",\"EventType\":\"%s\"}}", cropId, "Pesticide")
+	resultsIterator5, err := ctx.GetStub().GetQueryResult(queryString5)
+	if err != nil {
+		return nil, fmt.Errorf("the selector %s not exists", cropId)
+	}
+	defer resultsIterator5.Close()
+	var count5 int
+	var queryResponse5 *queryresult.KV
+	for resultsIterator5.HasNext() {
+		queryResponse5, err = resultsIterator5.Next()
+		if err != nil {
+			return nil, fmt.Errorf("the queryResponse %s not exists", cropId)
+		}
+		count5++
+	}
+	var asset5 map[string]interface{}
+	if count5 != 0 {
+		// var asset4 map[string]interface{}
+		err3 := json.Unmarshal(queryResponse5.Value, &asset5)
+		if err3 != nil {
+			return nil, fmt.Errorf("the queryResponse %s not exists", cropId)
+		}
+		// Assign value for LabTesting
+		assets["Pesticide"] = asset5
+	} else {
+		assets["Pesticide"] = asset5
+	}
 
+	// Started To check Type as Observations
+	queryString6 := fmt.Sprintf("{\"selector\":{\"CropID\":\"%s\",\"EventType\":\"%s\"}}", cropId, "Pesticide")
+	resultsIterator6, err := ctx.GetStub().GetQueryResult(queryString6)
+	if err != nil {
+		return nil, fmt.Errorf("the selector %s not exists", cropId)
+	}
+	defer resultsIterator6.Close()
+	var count6 int
+	var queryResponse6 *queryresult.KV
+	for resultsIterator6.HasNext() {
+		queryResponse6, err = resultsIterator6.Next()
+		if err != nil {
+			return nil, fmt.Errorf("the queryResponse %s not exists", cropId)
+		}
+		count6++
+	}
+	var asset6 map[string]interface{}
+	if count6 != 0 {
+		// var asset4 map[string]interface{}
+		err3 := json.Unmarshal(queryResponse6.Value, &asset6)
+		if err3 != nil {
+			return nil, fmt.Errorf("the queryResponse %s not exists", cropId)
+		}
+		// Assign value for LabTesting
+		assets["Observations"] = asset6
+	} else {
+		assets["Observations"] = asset6
+	}
 	return assets, nil
 }
 
@@ -2699,7 +2783,7 @@ func (s *SmartContract) ReadTrazeById(ctx contractapi.TransactionContextInterfac
 		if err != nil {
 			return nil, fmt.Errorf("the unmarshall error %s", err)
 		}
-		data["Harvesting"] = asset
+		data["Observations"] = asset
 		// response = FoodTazeRes{
 		// 	Status:  200,
 		// 	Message: "Harvesting event retrived Successfully.",
@@ -3767,7 +3851,7 @@ func (s *SmartContract) TrazeKdesTransfer(ctx contractapi.TransactionContextInte
 		}
 	}
 	if typeOrg == "Distributor" {
-		var kdes ProcessorShippingingKdes
+		var kdes DistributorShippingingKdes
 		err = json.Unmarshal(assetJSON, &kdes)
 		if err != nil {
 			return false, fmt.Errorf("unmarshall farm data: %v", err)
