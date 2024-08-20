@@ -90,7 +90,7 @@ func (s *SmartContract) FoodTrazeProcessorCreate(ctx contractapi.TransactionCont
 	var response FoodTazeRes
 	if status == "CropCreateEvent" {
 
-		PesticidesUsed := strings.Split(data5, ",")
+		// PesticidesUsed := strings.Split(data5, ",")
 		arrCertificate := strings.Split(data7, ",")
 		// feetFloat, _ := strconv.ParseFloat("3.2", 32)
 		var ipfsCert []FarmFile
@@ -127,7 +127,7 @@ func (s *SmartContract) FoodTrazeProcessorCreate(ctx contractapi.TransactionCont
 			CropName:        data8,
 			PlantingDate:    data4,
 			HarvestingDate:  data9,
-			PesticidesUsed:  PesticidesUsed,
+			// PesticidesUsed:  PesticidesUsed,
 			CropCondition:   data6,
 			Certification:   arrCertificate,
 			FarmFile:        ipfsCert,
