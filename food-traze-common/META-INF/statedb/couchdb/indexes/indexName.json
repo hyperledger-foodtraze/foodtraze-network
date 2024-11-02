@@ -1,0 +1,11 @@
+{
+    "index": {
+        "fields": [
+            "Headers.eventWhen",
+            "Headers.UnixTimeStamp"
+        ]
+    },
+    "ddoc": "indexDoc",
+    "name": "dateSort",
+    "type": "json"
+}
