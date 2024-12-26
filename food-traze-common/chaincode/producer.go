@@ -303,6 +303,290 @@ func (s *SmartContract) GetAllTrazeHistoryById(ctx contractapi.TransactionContex
 	return records, nil
 }
 
+// GetAllHarvest returns all assets found in world state
+func (s *SmartContract) GetAllProductEventsById(ctx contractapi.TransactionContextInterface, cropId string, filters string) (map[string]interface{}, error) {
+	exists, err2 := s.AssetExists(ctx, cropId)
+	if err2 != nil {
+		return nil, fmt.Errorf("the product data %s exist error", err2)
+	}
+	if !exists {
+		return nil, fmt.Errorf("the product data %s not exists", cropId)
+	}
+
+	assets := make(map[string]interface{})
+
+	assetJSON, err := ctx.GetStub().GetState(cropId)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read from world state: %v", err)
+	}
+	if assetJSON == nil {
+		return nil, fmt.Errorf("the crop %s does not exist", cropId)
+	}
+	// var response FoodTazeRes
+	// var data TrazeDetail
+	var asset map[string]interface{}
+	err = json.Unmarshal(assetJSON, &asset)
+	if err != nil {
+		return nil, fmt.Errorf("the unmarshall error %s", err)
+	}
+	// Assign value for crop
+	assets["Product"] = asset
+
+	assetJSON1, err := ctx.GetStub().GetState(asset["ParentId"].(string))
+	if err != nil {
+		return nil, fmt.Errorf("failed to read from world state: %v", err)
+	}
+	if assetJSON1 == nil {
+		return nil, fmt.Errorf("the farm %s does not exist", asset["ParentId"].(string))
+	}
+	// var response FoodTazeRes
+	// var data TrazeDetail
+	var asset1 map[string]interface{}
+	err = json.Unmarshal(assetJSON1, &asset1)
+	if err != nil {
+		return nil, fmt.Errorf("the unmarshall error %s", err)
+	}
+	// Assign value for crop
+	assets["Owner"] = asset1
+
+	var data []map[string]interface{}
+	// Started To check Type as Fertilization
+	// filter := fmt.Sprintf("{\"selector\":{\"CropID\":\"%s\",\"EventType\":\"%s\"}}", cropId, "Fertilization")
+	resultsIterator, err := ctx.GetStub().GetQueryResult(filters)
+	if err != nil {
+		return nil, err
+	}
+	defer resultsIterator.Close()
+
+	// var assets []map[string]interface{}
+	for resultsIterator.HasNext() {
+		queryResponse, err := resultsIterator.Next()
+		if err != nil {
+			return nil, err
+		}
+
+		var asset map[string]interface{}
+		err = json.Unmarshal(queryResponse.Value, &asset)
+		if err != nil {
+			return nil, err
+		}
+		data = append(data, asset)
+	}
+	assets["Events"] = data
+	return assets, nil
+}
+
+// GetAllHarvest returns all assets found in world state
+func (s *SmartContract) GetAllProductListEventsById(ctx contractapi.TransactionContextInterface, filter string) ([]map[string]interface{}, error) {
+	var data []map[string]interface{}
+	resultsIterator, err := ctx.GetStub().GetQueryResult(filter)
+	if err != nil {
+		return nil, err
+	}
+	defer resultsIterator.Close()
+
+	// var assets []map[string]interface{}
+	for resultsIterator.HasNext() {
+		queryResponse, err := resultsIterator.Next()
+		if err != nil {
+			return nil, err
+		}
+
+		var asset map[string]interface{}
+		err = json.Unmarshal(queryResponse.Value, &asset)
+		if err != nil {
+			return nil, err
+		}
+
+		var data2 []map[string]interface{}
+		// Started To check Type as Fertilization
+		filterEvent := fmt.Sprintf("{\"selector\":{\"ParentId\":\"%s\",\"DocType\":\"%s\"},\"sort\": [{\"Headers.eventWhen\": \"desc\"},{\"Headers.UnixTimeStamp\": \"desc\"}]}", asset["FTLCID"].(string), "Event")
+		// filter := fmt.Sprintf("{\"selector\":{\"CropID\":\"%s\",\"EventType\":\"%s\"}}", cropId, "Fertilization")
+		resultsIterator2, err := ctx.GetStub().GetQueryResult(filterEvent)
+		if err != nil {
+			return nil, err
+		}
+		defer resultsIterator2.Close()
+
+		// var assets []map[string]interface{}
+		for resultsIterator2.HasNext() {
+			queryResponse2, err := resultsIterator2.Next()
+			if err != nil {
+				return nil, err
+			}
+
+			var asset2 map[string]interface{}
+			err = json.Unmarshal(queryResponse2.Value, &asset2)
+			if err != nil {
+				return nil, err
+			}
+			data2 = append(data2, asset2)
+		}
+		asset["Events"] = data2
+		asset["EventsCount"] = len(data2)
+		data = append(data, asset)
+	}
+	return data, nil
+}
+
+// ReadAsset returns the asset stored in the world state with given id.
+func (s *SmartContract) TrazeKdesTransfer(ctx contractapi.TransactionContextInterface, id string, typeOrg string, toUserId int, toUserName string, ownerId string) (bool, error) {
+	assetJSON, err := ctx.GetStub().GetState(id)
+	if err != nil {
+		return false, fmt.Errorf("failed to read data from world state: %v", err)
+	}
+	if assetJSON == nil {
+		return false, fmt.Errorf("the data %s does not exist", id)
+	}
+	var kdes map[string]interface{}
+	err = json.Unmarshal(assetJSON, &kdes)
+	if err != nil {
+		return false, fmt.Errorf("unmarshall farm data: %v", err)
+	}
+	if typeOrg == "Producer" {
+
+		// err = json.Unmarshal(assetJSON, &kdes)
+		// if err != nil {
+		// 	return false, fmt.Errorf("unmarshall farm data: %v", err)
+		// }
+		kdes["Status"] = "Transferred"
+		kdes["AliasOrgName"] = "Producer"
+		kdes["UserId"] = toUserId
+		kdes["UserName"] = toUserName
+		kdes["ParentId"] = ownerId
+		assetJSON2, err4 := json.Marshal(kdes)
+		if err4 != nil {
+			return false, fmt.Errorf("the asset json %s already exists", assetJSON2)
+		}
+		ctx.GetStub().PutState(id, assetJSON2)
+		fmt.Println("Producer")
+		// Changes the endorsement policy to the new owner org
+		endorsingOrgs := []string{"Org1MSP"}
+		err1 := setAssetStateBasedEndorsement(ctx, id, endorsingOrgs)
+		if err1 != nil {
+			return false, fmt.Errorf("failed setting state based endorsement for new owner: %v", err1)
+		}
+	}
+	if typeOrg == "Processor" {
+
+		// err = json.Unmarshal(assetJSON, &kdes)
+		// if err != nil {
+		// 	return false, fmt.Errorf("unmarshall farm data: %v", err)
+		// }
+		kdes["Status"] = "Transferred"
+		kdes["AliasOrgName"] = "Processor"
+		kdes["UserId"] = toUserId
+		kdes["UserName"] = toUserName
+		kdes["ParentId"] = ownerId
+		assetJSON2, err4 := json.Marshal(kdes)
+		if err4 != nil {
+			return false, fmt.Errorf("the asset json %s already exists", assetJSON2)
+		}
+		ctx.GetStub().PutState(id, assetJSON2)
+
+		// Changes the endorsement policy to the new owner org
+		endorsingOrgs := []string{"Org2MSP"}
+		err1 := setAssetStateBasedEndorsement(ctx, id, endorsingOrgs)
+		if err1 != nil {
+			return false, fmt.Errorf("failed setting state based endorsement for new owner: %v", err1)
+		}
+	}
+	if typeOrg == "Distributor" {
+		// var kdes ProcessorShippingingKdes
+		// err = json.Unmarshal(assetJSON, &kdes)
+		// if err != nil {
+		// 	return false, fmt.Errorf("unmarshall farm data: %v", err)
+		// }
+		kdes["Status"] = "Transferred"
+		kdes["AliasOrgName"] = "Distributor"
+		kdes["UserId"] = toUserId
+		kdes["UserName"] = toUserName
+		kdes["ParentId"] = ownerId
+		assetJSON2, err4 := json.Marshal(kdes)
+		if err4 != nil {
+			return false, fmt.Errorf("the asset json %s already exists", assetJSON2)
+		}
+		ctx.GetStub().PutState(id, assetJSON2)
+
+		// Changes the endorsement policy to the new owner org
+		endorsingOrgs := []string{"Org4MSP"}
+		err1 := setAssetStateBasedEndorsement(ctx, id, endorsingOrgs)
+		if err1 != nil {
+			return false, fmt.Errorf("failed setting state based endorsement for new owner: %v", err1)
+		}
+	}
+	if typeOrg == "Retailer" {
+		// var kdes DistributorShippingingKdes
+		// err = json.Unmarshal(assetJSON, &kdes)
+		// if err != nil {
+		// 	return false, fmt.Errorf("unmarshall farm data: %v", err)
+		// }
+		kdes["Status"] = "Transferred"
+		kdes["AliasOrgName"] = "Retailer"
+		kdes["UserId"] = toUserId
+		kdes["UserName"] = toUserName
+		kdes["ParentId"] = ownerId
+		assetJSON2, err4 := json.Marshal(kdes)
+		if err4 != nil {
+			return false, fmt.Errorf("the asset json %s already exists", assetJSON2)
+		}
+		ctx.GetStub().PutState(id, assetJSON2)
+
+		// Changes the endorsement policy to the new owner org
+		endorsingOrgs := []string{"Org5MSP"}
+		err1 := setAssetStateBasedEndorsement(ctx, id, endorsingOrgs)
+		if err1 != nil {
+			return false, fmt.Errorf("failed setting state based endorsement for new owner: %v", err1)
+		}
+	}
+	return true, nil
+}
+
+// ReadAsset returns the asset stored in the world state with given id.
+func (s *SmartContract) TransferedIsAccept(ctx contractapi.TransactionContextInterface, id string, value int) (bool, error) {
+	assetJSON, err := ctx.GetStub().GetState(id)
+	if err != nil {
+		return false, fmt.Errorf("failed to read data from world state: %v", err)
+	}
+	if assetJSON == nil {
+		return false, fmt.Errorf("the data %s does not exist", id)
+	}
+	var kdes map[string]interface{}
+	err = json.Unmarshal(assetJSON, &kdes)
+	if err != nil {
+		return false, fmt.Errorf("unmarshall farm data: %v", err)
+	}
+	kdes["IsAccept"] = value
+	assetJSON2, err4 := json.Marshal(kdes)
+	if err4 != nil {
+		return false, fmt.Errorf("the asset json %s already exists", assetJSON2)
+	}
+	ctx.GetStub().PutState(id, assetJSON2)
+
+	return true, nil
+}
+func (s *SmartContract) TransferedStatus(ctx contractapi.TransactionContextInterface, id string, value string) (bool, error) {
+	assetJSON, err := ctx.GetStub().GetState(id)
+	if err != nil {
+		return false, fmt.Errorf("failed to read data from world state: %v", err)
+	}
+	if assetJSON == nil {
+		return false, fmt.Errorf("the data %s does not exist", id)
+	}
+	var kdes map[string]interface{}
+	err = json.Unmarshal(assetJSON, &kdes)
+	if err != nil {
+		return false, fmt.Errorf("unmarshall farm data: %v", err)
+	}
+	kdes["Status"] = value
+	assetJSON2, err4 := json.Marshal(kdes)
+	if err4 != nil {
+		return false, fmt.Errorf("the asset json %s already exists", assetJSON2)
+	}
+	ctx.GetStub().PutState(id, assetJSON2)
+
+	return true, nil
+}
 func (s *SmartContract) ChangeEndorsePolicy(ctx contractapi.TransactionContextInterface, data1 string, data2 string) (bool, error) {
 
 	// Changes the endorsement policy to the new owner org
