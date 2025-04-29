@@ -37,7 +37,7 @@ rm -rf go/wallet/*
 pushd food-traze-network
 ./network.sh down
 ./network.sh up createChannel  -ca -s couchdb
-./network.sh deployCC -ccn traze -ccp ../food-traze/ -ccl go
+./network.sh deployCC -ccn traze -ccp ../food-traze-common/ -ccl go
 popd
 
 cat <<EOF
