@@ -3,6 +3,7 @@ package chaincode
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"math/rand"
 	"strconv"
 	"time"
@@ -200,17 +201,9 @@ func (s *SmartContract) ReadTrazeById(ctx contractapi.TransactionContextInterfac
 func (s *SmartContract) GetAllTraze(ctx contractapi.TransactionContextInterface, filter string) ([]map[string]interface{}, error) {
 
 	var data []map[string]interface{}
-	// var asset CropDetails
-	// err = json.Unmarshal(assetJSON, &asset)
-	// if err != nil {
-	// 	return nil, fmt.Errorf("the unmarshall error %s", err)
-	// }
-
-	// queryString := fmt.Sprintf("{\"selector\":{\"DocType\":\"%s\",\"UserId\":\"%s\"}}", "Crop", userId)
-	// queryString := fmt.Sprintf(`{"selector":{"FarmID":"%s"}}`, farmId)
 	resultsIterator, err := ctx.GetStub().GetQueryResult(filter)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unmarshall farm data1: %v", err)
 	}
 	defer resultsIterator.Close()
 
@@ -218,13 +211,13 @@ func (s *SmartContract) GetAllTraze(ctx contractapi.TransactionContextInterface,
 	for resultsIterator.HasNext() {
 		queryResponse, err := resultsIterator.Next()
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("unmarshall farm data2: %v", err)
 		}
 
 		var asset map[string]interface{}
 		err = json.Unmarshal(queryResponse.Value, &asset)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("unmarshall farm data3: %v", err)
 		}
 		data = append(data, asset)
 	}
@@ -376,6 +369,575 @@ func (s *SmartContract) GetAllProductEventsById(ctx contractapi.TransactionConte
 	return assets, nil
 }
 
+// GetAllProductEventsByBatchId returns all assets found in world state
+func (s *SmartContract) GetAllProductEventsByBatchIdIngredient(ctx contractapi.TransactionContextInterface, cropId string, label string) (map[string]interface{}, error) {
+	assets := make(map[string]interface{})
+	if label == "Batch" {
+		// --------------------   Get ProductData   -----------------------
+		filters := fmt.Sprintf("{\"selector\":{\"Data.BatchId\":\"%s\",\"DocType\":\"%s\"}}", cropId, "TransformationProduct")
+		resultsIterator0, err := ctx.GetStub().GetQueryResult(filters)
+		if err != nil {
+			return nil, fmt.Errorf("GetQueryResult: %v", err)
+		}
+		defer resultsIterator0.Close()
+		var asset0 map[string]interface{}
+		// var assets []map[string]interface{}
+		for resultsIterator0.HasNext() {
+			queryResponse0, err := resultsIterator0.Next()
+			if err != nil {
+				return nil, err
+			}
+
+			err = json.Unmarshal(queryResponse0.Value, &asset0)
+			if err != nil {
+				return nil, fmt.Errorf("the unmarshall product error %s", err)
+			}
+			// data = append(data, asset)
+		}
+		assets["Product"] = asset0
+
+		// --------------------   Get Product Trace Ledger Data   -----------------------
+		assetJSON, err := ctx.GetStub().GetState(asset0["ParentId"].(string))
+		if err != nil {
+			return nil, fmt.Errorf("failed to read from world state: %v", err)
+		}
+		if assetJSON == nil {
+			return nil, fmt.Errorf("the crop %s does not exist", cropId)
+		}
+		// var response FoodTazeRes
+		// var data TrazeDetail
+		var asset map[string]interface{}
+		err = json.Unmarshal(assetJSON, &asset)
+		if err != nil {
+			return nil, fmt.Errorf("the unmarshall error %s", err)
+		}
+		// Assign value for crop
+		assets["Ledger"] = asset
+		// --------------------   Get Farm Data   -----------------------
+		assetJSON1, err := ctx.GetStub().GetState(asset["ParentId"].(string))
+		if err != nil {
+			return nil, fmt.Errorf("failed to read from world state1: %v", err)
+		}
+		if assetJSON1 == nil {
+			return nil, fmt.Errorf("the farm %s does not exist1", asset["ParentId"].(string))
+		}
+		// var response FoodTazeRes
+		// var data TrazeDetail
+		var asset1 map[string]interface{}
+		err = json.Unmarshal(assetJSON1, &asset1)
+		if err != nil {
+			return nil, fmt.Errorf("the unmarshall error1 %s", err)
+		}
+		// Assign value for crop
+		assets["Farm"] = asset1
+		// --------------------   Get Events Data   -----------------------
+		var data []map[string]interface{}
+		// Started To check Type as Fertilization
+		filter := fmt.Sprintf("{\"selector\":{\"ParentId\":\"%s\",\"DocType\":\"%s\"}}", asset["FTLCID"], "Event")
+		resultsIterator, err := ctx.GetStub().GetQueryResult(filter)
+		if err != nil {
+			return nil, fmt.Errorf("error event GetQueryResult: %v", err)
+		}
+		defer resultsIterator.Close()
+
+		// var assets []map[string]interface{}
+		for resultsIterator.HasNext() {
+			queryResponse, err := resultsIterator.Next()
+			if err != nil {
+				return nil, err
+			}
+
+			var asset map[string]interface{}
+			err = json.Unmarshal(queryResponse.Value, &asset)
+			if err != nil {
+				return nil, fmt.Errorf("the unmarshall event error %s", err)
+			}
+			data = append(data, asset)
+		}
+		assets["Events"] = data
+		// --------------------   Get Ingredient Data   -----------------------
+		var ingredient []map[string]interface{}
+		fmt.Println("Inside Length")
+		log.Printf("Inside Length")
+		// var ids []string
+		for _, ingred := range data {
+			data1 := ingred["Data"].(map[string]interface{})
+			batchIdsIface := data1["BatchId"]
+			// if !ok {
+			// 	log.Printf("continue1: invalid batch ID type, ok1 = %t", ok)
+			// 	err0 := fmt.Errorf("continue1: invalid batch ID type, ok1 = %t", ok)
+			// 	fmt.Errorf("the continue1 ingredient error %t", err0)
+			// 	continue
+			// }
+
+			batchIds, ok := batchIdsIface.([]interface{}) // most likely type
+			if !ok {
+				return nil, fmt.Errorf("invalid BatchId type")
+			}
+			fmt.Println("batchId", batchIds)
+			// Started To check Type as Fertilization
+			for _, id := range batchIds {
+				batchId := id.(string)
+				filter1 := fmt.Sprintf("{\"selector\":{\"Data.BatchId\":\"%s\",\"DocType\":\"%s\"}}", batchId, "TransformationProduct")
+				resultsIterator1, err := ctx.GetStub().GetQueryResult(filter1)
+				if err != nil {
+					return nil, fmt.Errorf("error ingredient GetQueryResult: %v", err)
+				}
+				defer resultsIterator1.Close()
+				for resultsIterator1.HasNext() {
+					queryResponse, err := resultsIterator1.Next()
+					if err != nil {
+						return nil, err
+					}
+
+					var asset1 map[string]interface{}
+					err = json.Unmarshal(queryResponse.Value, &asset1)
+					if err != nil {
+						return nil, fmt.Errorf("the unmarshall ingredient error %s", err)
+					}
+					ingredient = append(ingredient, asset1)
+					fmt.Println("Appended ingredient")
+				}
+			}
+		}
+		assets["Ingredient"] = ingredient
+
+	} else if label == "FTLC" {
+		// Check Exist
+		exists, err2 := s.AssetExists(ctx, cropId)
+		if err2 != nil {
+			return nil, fmt.Errorf("the product data %s exist error", err2)
+		}
+		if !exists {
+			return nil, fmt.Errorf("the product data %s not exists", cropId)
+		}
+		// --------------------   Get ProductData   -----------------------
+		assetJSON0, err := ctx.GetStub().GetState(cropId)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read from world state: %v", err)
+		}
+		if assetJSON0 == nil {
+			return nil, fmt.Errorf("the crop %s does not exist", cropId)
+		}
+		var asset0 map[string]interface{}
+		err = json.Unmarshal(assetJSON0, &asset0)
+		if err != nil {
+			return nil, fmt.Errorf("the unmarshall error %s", err)
+		}
+		assets["Product"] = asset0
+
+		// --------------------   Get Product Trace Ledger Data   -----------------------
+		assetJSON, err := ctx.GetStub().GetState(asset0["ParentId"].(string))
+		if err != nil {
+			return nil, fmt.Errorf("failed to read from world state: %v", err)
+		}
+		if assetJSON == nil {
+			return nil, fmt.Errorf("the crop %s does not exist", cropId)
+		}
+		// var response FoodTazeRes
+		// var data TrazeDetail
+		var asset map[string]interface{}
+		err = json.Unmarshal(assetJSON, &asset)
+		if err != nil {
+			return nil, fmt.Errorf("the unmarshall error %s", err)
+		}
+		// Assign value for crop
+		assets["Ledger"] = asset
+		// --------------------   Get Farm Data   -----------------------
+		assetJSON1, err := ctx.GetStub().GetState(asset["ParentId"].(string))
+		if err != nil {
+			return nil, fmt.Errorf("failed to read from world state: %v", err)
+		}
+		if assetJSON1 == nil {
+			return nil, fmt.Errorf("the farm %s does not exist", asset["ParentId"].(string))
+		}
+		// var response FoodTazeRes
+		// var data TrazeDetail
+		var asset1 map[string]interface{}
+		err = json.Unmarshal(assetJSON1, &asset1)
+		if err != nil {
+			return nil, fmt.Errorf("the unmarshall error %s", err)
+		}
+		// Assign value for crop
+		assets["Farm"] = asset1
+		// --------------------   Get Events Data   -----------------------
+		var data []map[string]interface{}
+		// Started To check Type as Fertilization
+		filter := fmt.Sprintf("{\"selector\":{\"ParentId\":\"%s\",\"DocType\":\"%s\"}}", asset["FTLCID"], "Event")
+		resultsIterator, err := ctx.GetStub().GetQueryResult(filter)
+		if err != nil {
+			return nil, err
+		}
+		defer resultsIterator.Close()
+
+		// var assets []map[string]interface{}
+		for resultsIterator.HasNext() {
+			queryResponse, err := resultsIterator.Next()
+			if err != nil {
+				return nil, err
+			}
+
+			var asset map[string]interface{}
+			err = json.Unmarshal(queryResponse.Value, &asset)
+			if err != nil {
+				return nil, err
+			}
+			data = append(data, asset)
+		}
+		assets["Events"] = data
+		// --------------------   Get Ingredient Data   -----------------------
+		var ingredient []map[string]interface{}
+		fmt.Println("Inside Length")
+		log.Printf("Inside Length")
+		// var ids []string
+		for _, ingred := range data {
+			data1 := ingred["Data"].(map[string]interface{})
+			batchIdsIface := data1["Batch Id"]
+			// if !ok {
+			// 	log.Printf("continue1: invalid batch ID type, ok1 = %t", ok)
+			// 	err0 := fmt.Errorf("continue1: invalid batch ID type, ok1 = %t", ok)
+			// 	fmt.Errorf("the continue1 ingredient error %t", err0)
+			// 	continue
+			// }
+
+			batchIds, ok := batchIdsIface.([]interface{}) // most likely type
+			if !ok {
+				return nil, fmt.Errorf("invalid BatchId type")
+			}
+			fmt.Println("batchId", batchIds)
+			// Started To check Type as Fertilization
+			for _, id := range batchIds {
+				batchId := id.(string)
+				filter1 := fmt.Sprintf("{\"selector\":{\"Data.BatchId\":\"%s\",\"DocType\":\"%s\"}}", batchId, "TransformationProduct")
+				resultsIterator1, err := ctx.GetStub().GetQueryResult(filter1)
+				if err != nil {
+					return nil, fmt.Errorf("error ingredient GetQueryResult: %v", err)
+				}
+				defer resultsIterator1.Close()
+				for resultsIterator1.HasNext() {
+					queryResponse, err := resultsIterator1.Next()
+					if err != nil {
+						return nil, err
+					}
+
+					var asset1 map[string]interface{}
+					err = json.Unmarshal(queryResponse.Value, &asset1)
+					if err != nil {
+						return nil, fmt.Errorf("the unmarshall ingredient error %s", err)
+					}
+					ingredient = append(ingredient, asset1)
+					fmt.Println("Appended ingredient")
+				}
+			}
+		}
+		assets["Ingredient"] = ingredient
+
+	}
+
+	return assets, nil
+}
+
+// GetAllProductEventsByBatchId returns all assets found in world state
+func (s *SmartContract) GetAllProductEventsByBatchId(ctx contractapi.TransactionContextInterface, cropId string, label string) (map[string]interface{}, error) {
+	assets := make(map[string]interface{})
+	if label == "Batch" {
+		// --------------------   Get ProductData   -----------------------
+		filters := fmt.Sprintf("{\"selector\":{\"Data.BatchId\":\"%s\",\"DocType\":\"%s\"}}", cropId, "TransformationProduct")
+		resultsIterator0, err := ctx.GetStub().GetQueryResult(filters)
+		if err != nil {
+			return nil, fmt.Errorf("GetQueryResult: %v", err)
+		}
+		defer resultsIterator0.Close()
+		var asset0 map[string]interface{}
+		// var assets []map[string]interface{}
+		for resultsIterator0.HasNext() {
+			queryResponse0, err := resultsIterator0.Next()
+			if err != nil {
+				return nil, err
+			}
+
+			err = json.Unmarshal(queryResponse0.Value, &asset0)
+			if err != nil {
+				return nil, fmt.Errorf("the unmarshall product error %s", err)
+			}
+			// data = append(data, asset)
+		}
+		assets["Product"] = asset0
+
+		// --------------------   Get Product Trace Ledger Data   -----------------------
+		assetJSON, err := ctx.GetStub().GetState(asset0["ParentId"].(string))
+		if err != nil {
+			return nil, fmt.Errorf("failed to read from world state: %v", err)
+		}
+		if assetJSON == nil {
+			return nil, fmt.Errorf("the crop %s does not exist", cropId)
+		}
+		// var response FoodTazeRes
+		// var data TrazeDetail
+		var asset map[string]interface{}
+		err = json.Unmarshal(assetJSON, &asset)
+		if err != nil {
+			return nil, fmt.Errorf("the unmarshall error %s", err)
+		}
+		// Assign value for crop
+		assets["Ledger"] = asset
+		// --------------------   Get Farm Data   -----------------------
+		assetJSON1, err := ctx.GetStub().GetState(asset["ParentId"].(string))
+		if err != nil {
+			return nil, fmt.Errorf("failed to read from world state1: %v", err)
+		}
+		if assetJSON1 == nil {
+			return nil, fmt.Errorf("the farm %s does not exist1", asset["ParentId"].(string))
+		}
+		// var response FoodTazeRes
+		// var data TrazeDetail
+		var asset1 map[string]interface{}
+		err = json.Unmarshal(assetJSON1, &asset1)
+		if err != nil {
+			return nil, fmt.Errorf("the unmarshall error1 %s", err)
+		}
+		// Assign value for crop
+		assets["Farm"] = asset1
+		// --------------------   Get Events Data   -----------------------
+		var data []map[string]interface{}
+		// Started To check Type as Fertilization
+		filter := fmt.Sprintf("{\"selector\":{\"ParentId\":\"%s\",\"DocType\":\"%s\"},\"sort\": [{\"Data.Date\": \"desc\"}]}", asset["FTLCID"], "Event")
+		resultsIterator, err := ctx.GetStub().GetQueryResult(filter)
+		if err != nil {
+			return nil, fmt.Errorf("error event GetQueryResult: %v", err)
+		}
+		defer resultsIterator.Close()
+
+		// var assets []map[string]interface{}
+		for resultsIterator.HasNext() {
+			queryResponse, err := resultsIterator.Next()
+			if err != nil {
+				return nil, err
+			}
+
+			var asset map[string]interface{}
+			err = json.Unmarshal(queryResponse.Value, &asset)
+			if err != nil {
+				return nil, fmt.Errorf("the unmarshall event error %s", err)
+			}
+			data = append(data, asset)
+		}
+
+		// --------------------   Get Ingredient Data   -----------------------
+		var ingredient []map[string]interface{}
+		fmt.Println("Inside Length")
+		log.Printf("Inside Length")
+		// var ids []string
+		for _, ingred := range data {
+			data1 := ingred["Data"].(map[string]interface{})
+			batchIdsIface := data1["Batch Id"]
+			// if !ok {
+			// 	log.Printf("continue1: invalid batch ID type, ok1 = %t", ok)
+			// 	err0 := fmt.Errorf("continue1: invalid batch ID type, ok1 = %t", ok)
+			// 	fmt.Errorf("the continue1 ingredient error %t", err0)
+			// 	continue
+			// }
+
+			batchIds, ok := batchIdsIface.([]interface{}) // most likely type
+			if !ok {
+				// return nil, fmt.Errorf("invalid BatchId type")
+			}
+			fmt.Println("batchId", batchIds)
+			// Started To check Type as Fertilization
+			for _, id := range batchIds {
+				batchId := id.(string)
+				filter1 := fmt.Sprintf("{\"selector\":{\"Data.BatchId\":\"%s\",\"DocType\":\"%s\"}}", batchId, "TransformationProduct")
+				resultsIterator1, err := ctx.GetStub().GetQueryResult(filter1)
+				if err != nil {
+					return nil, fmt.Errorf("error ingredient GetQueryResult: %v", err)
+				}
+				defer resultsIterator1.Close()
+				for resultsIterator1.HasNext() {
+					queryResponse, err := resultsIterator1.Next()
+					if err != nil {
+						return nil, err
+					}
+
+					var asset1 map[string]interface{}
+					err = json.Unmarshal(queryResponse.Value, &asset1)
+					if err != nil {
+						return nil, fmt.Errorf("the unmarshall ingredient error %s", err)
+					}
+					ingredient = append(ingredient, asset1)
+					fmt.Println("Appended ingredient")
+				}
+			}
+		}
+		assets["Ingredient"] = ingredient
+
+		// --------------------   Get Ingredient Events Data   -----------------------
+		if len(ingredient) != 0 {
+			for _, ingred := range ingredient {
+				dataIng := ingred["Data"].(map[string]interface{})
+				// Started To check Type as Fertilization
+				filter := fmt.Sprintf("{\"selector\":{\"ParentId\":\"%s\",\"DocType\":\"%s\"},\"sort\": [{\"Data.Date\": \"desc\"}]}", dataIng["ProductTraceLedgerId"], "Event")
+				resultsIterator, err := ctx.GetStub().GetQueryResult(filter)
+				if err != nil {
+					return nil, fmt.Errorf("error event GetQueryResult: %v", err)
+				}
+				defer resultsIterator.Close()
+
+				// var assets []map[string]interface{}
+				for resultsIterator.HasNext() {
+					queryResponse, err := resultsIterator.Next()
+					if err != nil {
+						return nil, err
+					}
+
+					var asset map[string]interface{}
+					err = json.Unmarshal(queryResponse.Value, &asset)
+					if err != nil {
+						return nil, fmt.Errorf("the unmarshall event error %s", err)
+					}
+					data = append(data, asset)
+				}
+			}
+
+			assets["Events"] = data
+		}
+
+	} else if label == "FTLC" {
+		// Check Exist
+		exists, err2 := s.AssetExists(ctx, cropId)
+		if err2 != nil {
+			return nil, fmt.Errorf("the product data %s exist error", err2)
+		}
+		if !exists {
+			return nil, fmt.Errorf("the product data %s not exists", cropId)
+		}
+		// --------------------   Get ProductData   -----------------------
+		assetJSON0, err := ctx.GetStub().GetState(cropId)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read from world state: %v", err)
+		}
+		if assetJSON0 == nil {
+			return nil, fmt.Errorf("the crop %s does not exist", cropId)
+		}
+		var asset0 map[string]interface{}
+		err = json.Unmarshal(assetJSON0, &asset0)
+		if err != nil {
+			return nil, fmt.Errorf("the unmarshall error %s", err)
+		}
+		assets["Product"] = asset0
+
+		// --------------------   Get Product Trace Ledger Data   -----------------------
+		assetJSON, err := ctx.GetStub().GetState(asset0["ParentId"].(string))
+		if err != nil {
+			return nil, fmt.Errorf("failed to read from world state: %v", err)
+		}
+		if assetJSON == nil {
+			return nil, fmt.Errorf("the crop %s does not exist", cropId)
+		}
+		// var response FoodTazeRes
+		// var data TrazeDetail
+		var asset map[string]interface{}
+		err = json.Unmarshal(assetJSON, &asset)
+		if err != nil {
+			return nil, fmt.Errorf("the unmarshall error %s", err)
+		}
+		// Assign value for crop
+		assets["Ledger"] = asset
+		// --------------------   Get Farm Data   -----------------------
+		assetJSON1, err := ctx.GetStub().GetState(asset["ParentId"].(string))
+		if err != nil {
+			return nil, fmt.Errorf("failed to read from world state: %v", err)
+		}
+		if assetJSON1 == nil {
+			return nil, fmt.Errorf("the farm %s does not exist", asset["ParentId"].(string))
+		}
+		// var response FoodTazeRes
+		// var data TrazeDetail
+		var asset1 map[string]interface{}
+		err = json.Unmarshal(assetJSON1, &asset1)
+		if err != nil {
+			return nil, fmt.Errorf("the unmarshall error %s", err)
+		}
+		// Assign value for crop
+		assets["Farm"] = asset1
+		// --------------------   Get Events Data   -----------------------
+		var data []map[string]interface{}
+		// Started To check Type as Fertilization
+		filter := fmt.Sprintf("{\"selector\":{\"ParentId\":\"%s\",\"DocType\":\"%s\"},\"sort\": [{\"Data.Date\": \"desc\"}]}", asset["FTLCID"], "Event")
+		resultsIterator, err := ctx.GetStub().GetQueryResult(filter)
+		if err != nil {
+			return nil, err
+		}
+		defer resultsIterator.Close()
+
+		// var assets []map[string]interface{}
+		for resultsIterator.HasNext() {
+			queryResponse, err := resultsIterator.Next()
+			if err != nil {
+				return nil, err
+			}
+
+			var asset map[string]interface{}
+			err = json.Unmarshal(queryResponse.Value, &asset)
+			if err != nil {
+				return nil, err
+			}
+			data = append(data, asset)
+		}
+		assets["Events"] = data
+		// --------------------   Get Ingredient Data   -----------------------
+		var ingredient []map[string]interface{}
+		fmt.Println("Inside Length")
+		log.Printf("Inside Length")
+		// var ids []string
+		for _, ingred := range data {
+			data1 := ingred["Data"].(map[string]interface{})
+			batchIdsIface := data1["Batch Id"]
+			// if !ok {
+			// 	log.Printf("continue1: invalid batch ID type, ok1 = %t", ok)
+			// 	err0 := fmt.Errorf("continue1: invalid batch ID type, ok1 = %t", ok)
+			// 	fmt.Errorf("the continue1 ingredient error %t", err0)
+			// 	continue
+			// }
+
+			batchIds, ok := batchIdsIface.([]interface{}) // most likely type
+			if !ok {
+				// return nil, fmt.Errorf("invalid BatchId type")
+				continue
+			}
+
+			fmt.Println("batchId", batchIds)
+			// Started To check Type as Fertilization
+			for _, id := range batchIds {
+				batchId := id
+				filter1 := fmt.Sprintf("{\"selector\":{\"Data.BatchId\":\"%s\",\"DocType\":\"%s\"}}", batchId, "TransformationProduct")
+				resultsIterator1, err := ctx.GetStub().GetQueryResult(filter1)
+				if err != nil {
+					return nil, fmt.Errorf("error ingredient GetQueryResult: %v", err)
+				}
+				defer resultsIterator1.Close()
+				for resultsIterator1.HasNext() {
+					queryResponse, err := resultsIterator1.Next()
+					if err != nil {
+						return nil, err
+					}
+
+					var asset1 map[string]interface{}
+					err = json.Unmarshal(queryResponse.Value, &asset1)
+					if err != nil {
+						return nil, fmt.Errorf("the unmarshall ingredient error %s", err)
+					}
+					ingredient = append(ingredient, asset1)
+					fmt.Println("Appended ingredient")
+				}
+			}
+		}
+		assets["Ingredient"] = ingredient
+
+	}
+
+	return assets, nil
+}
+
 // GetAllHarvest returns all assets found in world state
 func (s *SmartContract) GetAllProductListEventsById(ctx contractapi.TransactionContextInterface, filter string) ([]map[string]interface{}, error) {
 	var data []map[string]interface{}
@@ -430,7 +992,7 @@ func (s *SmartContract) GetAllProductListEventsById(ctx contractapi.TransactionC
 }
 
 // ReadAsset returns the asset stored in the world state with given id.
-func (s *SmartContract) TrazeKdesTransfer(ctx contractapi.TransactionContextInterface, id string, typeOrg string, toUserId int, toUserName string, ownerId string) (bool, error) {
+func (s *SmartContract) TrazeKdesTransfer(ctx contractapi.TransactionContextInterface, id string, typeOrg string, toUserId int, toUserName string, ownerId string, toOwnerName string, fromUserId int, fromUserName string) (bool, error) {
 	assetJSON, err := ctx.GetStub().GetState(id)
 	if err != nil {
 		return false, fmt.Errorf("failed to read data from world state: %v", err)
@@ -443,23 +1005,35 @@ func (s *SmartContract) TrazeKdesTransfer(ctx contractapi.TransactionContextInte
 	if err != nil {
 		return false, fmt.Errorf("unmarshall farm data: %v", err)
 	}
-	if typeOrg == "Producer" {
+	// Get Owner Name
+	assetJSON2, err2 := ctx.GetStub().GetState(kdes["ParentId"].(string))
+	if err2 != nil {
+		return false, fmt.Errorf("failed to read data from world state: %v", err)
+	}
+	if assetJSON2 == nil {
+		return false, fmt.Errorf("the data %s does not exist", id)
+	}
+	var owner map[string]interface{}
+	err2 = json.Unmarshal(assetJSON2, &owner)
+	if err2 != nil {
+		return false, fmt.Errorf("unmarshall farm data: %v", err2)
+	}
 
-		// err = json.Unmarshal(assetJSON, &kdes)
-		// if err != nil {
-		// 	return false, fmt.Errorf("unmarshall farm data: %v", err)
-		// }
+	if typeOrg == "Producer" {
 		kdes["Status"] = "Transferred"
-		kdes["AliasOrgName"] = "Producer"
 		kdes["UserId"] = toUserId
 		kdes["UserName"] = toUserName
-		kdes["ParentId"] = ownerId
+		kdes["ToParentId"] = ownerId
+		kdes["FromUserName"] = fromUserName
+		kdes["FromUserId"] = fromUserId
+		kdes["FarmName"] = toOwnerName
+		kdes["IsAccept"] = 1
 		assetJSON2, err4 := json.Marshal(kdes)
 		if err4 != nil {
 			return false, fmt.Errorf("the asset json %s already exists", assetJSON2)
 		}
 		ctx.GetStub().PutState(id, assetJSON2)
-		fmt.Println("Producer")
+		fmt.Println("Producer1")
 		// Changes the endorsement policy to the new owner org
 		endorsingOrgs := []string{"Org1MSP"}
 		err1 := setAssetStateBasedEndorsement(ctx, id, endorsingOrgs)
@@ -468,16 +1042,42 @@ func (s *SmartContract) TrazeKdesTransfer(ctx contractapi.TransactionContextInte
 		}
 	}
 	if typeOrg == "Processor" {
+		// Started To check Type as Fertilization
+		filterEvent := fmt.Sprintf("{\"selector\":{\"ParentId\":\"%s\",\"DocType\":\"%s\"},\"sort\": [{\"Headers.eventWhen\": \"desc\"},{\"Headers.UnixTimeStamp\": \"desc\"}]}", id, "Event")
+		resultsIterator2, err := ctx.GetStub().GetQueryResult(filterEvent)
+		if err != nil {
+			return false, err
+		}
+		defer resultsIterator2.Close()
 
-		// err = json.Unmarshal(assetJSON, &kdes)
-		// if err != nil {
-		// 	return false, fmt.Errorf("unmarshall farm data: %v", err)
-		// }
+		// var assets []map[string]interface{}
+		for resultsIterator2.HasNext() {
+			queryResponse2, err := resultsIterator2.Next()
+			if err != nil {
+				return false, err
+			}
+
+			var asset2 map[string]interface{}
+			err = json.Unmarshal(queryResponse2.Value, &asset2)
+			if err != nil {
+				return false, err
+			}
+			asset2["UserId"] = toUserId
+			asset2["UserName"] = toUserName
+			assetJSON2, err4 := json.Marshal(asset2)
+			if err4 != nil {
+				return false, fmt.Errorf("the asset json %s already exists", assetJSON2)
+			}
+			ctx.GetStub().PutState(asset2["FTLCID"].(string), assetJSON2)
+		}
 		kdes["Status"] = "Transferred"
-		kdes["AliasOrgName"] = "Processor"
 		kdes["UserId"] = toUserId
 		kdes["UserName"] = toUserName
-		kdes["ParentId"] = ownerId
+		kdes["ToParentId"] = ownerId
+		kdes["FromUserName"] = fromUserName
+		kdes["FromUserId"] = fromUserId
+		kdes["FarmName"] = toOwnerName
+		kdes["IsAccept"] = 1
 		assetJSON2, err4 := json.Marshal(kdes)
 		if err4 != nil {
 			return false, fmt.Errorf("the asset json %s already exists", assetJSON2)
@@ -492,16 +1092,14 @@ func (s *SmartContract) TrazeKdesTransfer(ctx contractapi.TransactionContextInte
 		}
 	}
 	if typeOrg == "Distributor" {
-		// var kdes ProcessorShippingingKdes
-		// err = json.Unmarshal(assetJSON, &kdes)
-		// if err != nil {
-		// 	return false, fmt.Errorf("unmarshall farm data: %v", err)
-		// }
 		kdes["Status"] = "Transferred"
-		kdes["AliasOrgName"] = "Distributor"
 		kdes["UserId"] = toUserId
 		kdes["UserName"] = toUserName
 		kdes["ParentId"] = ownerId
+		kdes["FromUserName"] = fromUserName
+		kdes["FromUserId"] = fromUserId
+		kdes["FarmName"] = toOwnerName
+		kdes["IsAccept"] = 1
 		assetJSON2, err4 := json.Marshal(kdes)
 		if err4 != nil {
 			return false, fmt.Errorf("the asset json %s already exists", assetJSON2)
@@ -516,16 +1114,14 @@ func (s *SmartContract) TrazeKdesTransfer(ctx contractapi.TransactionContextInte
 		}
 	}
 	if typeOrg == "Retailer" {
-		// var kdes DistributorShippingingKdes
-		// err = json.Unmarshal(assetJSON, &kdes)
-		// if err != nil {
-		// 	return false, fmt.Errorf("unmarshall farm data: %v", err)
-		// }
 		kdes["Status"] = "Transferred"
-		kdes["AliasOrgName"] = "Retailer"
 		kdes["UserId"] = toUserId
 		kdes["UserName"] = toUserName
 		kdes["ParentId"] = ownerId
+		kdes["FromUserName"] = fromUserName
+		kdes["FromUserId"] = fromUserId
+		kdes["FarmName"] = toOwnerName
+		kdes["IsAccept"] = 1
 		assetJSON2, err4 := json.Marshal(kdes)
 		if err4 != nil {
 			return false, fmt.Errorf("the asset json %s already exists", assetJSON2)
@@ -700,39 +1296,39 @@ func (s *SmartContract) GetFarmByPagination(ctx contractapi.TransactionContextIn
 }
 
 // GetAllFarms returns all assets found in world state
-// func (s *SmartContract) CheckFarmEmail(ctx contractapi.TransactionContextInterface, email string) (bool, error) {
+func (s *SmartContract) CheckFarmEmail(ctx contractapi.TransactionContextInterface, email string) (bool, error) {
 
-// 	// range query with empty string for startKey and endKey does an
-// 	// open-ended query of all assets in the chaincode namespace.
-// 	queryString := fmt.Sprintf("{\"selector\":{\"DocType\":\"%s\",\"Farmer.ContactInformation.Email\":\"%s\"}}", "Farm", email)
-// 	resultsIterator, err := ctx.GetStub().GetQueryResult(queryString)
-// 	if err != nil {
-// 		return true, err
-// 	}
-// 	defer resultsIterator.Close()
+	// range query with empty string for startKey and endKey does an
+	// open-ended query of all assets in the chaincode namespace.
+	queryString := fmt.Sprintf("{\"selector\":{\"DocType\":\"%s\",\"Farmer.ContactInformation.Email\":\"%s\"}}", "Farm", email)
+	resultsIterator, err := ctx.GetStub().GetQueryResult(queryString)
+	if err != nil {
+		return true, err
+	}
+	defer resultsIterator.Close()
 
-// 	var farms []*Farm
-// 	for resultsIterator.HasNext() {
-// 		queryResponse, err := resultsIterator.Next()
-// 		if err != nil {
-// 			return true, fmt.Errorf("failed to iterate farm: %v", err)
-// 		}
-// 		// fmt.log("queryResponse.Value", queryResponse.Value)
-// 		var farm Farm
-// 		err = json.Unmarshal(queryResponse.Value, &farm)
-// 		if err != nil {
-// 			return true, fmt.Errorf("unmarshall farm data: %v", err)
-// 		}
-// 		farms = append(farms, &farm)
-// 	}
-// 	var result bool
-// 	if len(farms) != 0 {
-// 		result = true
-// 	} else {
-// 		result = false
-// 	}
-// 	return result, nil
-// }
+	var farms []map[string]interface{}
+	for resultsIterator.HasNext() {
+		queryResponse, err := resultsIterator.Next()
+		if err != nil {
+			return true, fmt.Errorf("failed to iterate farm: %v", err)
+		}
+		// fmt.log("queryResponse.Value", queryResponse.Value)
+		var farm map[string]interface{}
+		err = json.Unmarshal(queryResponse.Value, &farm)
+		if err != nil {
+			return true, fmt.Errorf("unmarshall farm data: %v", err)
+		}
+		farms = append(farms, farm)
+	}
+	var result bool
+	if len(farms) != 0 {
+		result = true
+	} else {
+		result = false
+	}
+	return result, nil
+}
 
 // AssetExists returns true when asset with given ID exists in world state
 func (s *SmartContract) AssetExists(ctx contractapi.TransactionContextInterface, id string) (bool, error) {
