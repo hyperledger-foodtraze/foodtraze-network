@@ -198,34 +198,6 @@ func (s *SmartContract) ReadTrazeById(ctx contractapi.TransactionContextInterfac
 }
 
 // ReadAsset returns the asset stored in the world state with given id.
-func (s *SmartContract) ReadTrazeByBatchId(ctx contractapi.TransactionContextInterface, filter string) ([]map[string]interface{}, error) {
-
-	var data []map[string]interface{}
-	resultsIterator, err := ctx.GetStub().GetQueryResult(filter)
-	if err != nil {
-		return nil, fmt.Errorf("unmarshall farm data1: %v", err)
-	}
-	defer resultsIterator.Close()
-
-	// var assets []map[string]interface{}
-	for resultsIterator.HasNext() {
-		queryResponse, err := resultsIterator.Next()
-		if err != nil {
-			return nil, fmt.Errorf("unmarshall farm data2: %v", err)
-		}
-
-		var asset map[string]interface{}
-		err = json.Unmarshal(queryResponse.Value, &asset)
-		if err != nil {
-			return nil, fmt.Errorf("unmarshall farm data3: %v", err)
-		}
-		data = append(data, asset)
-	}
-	return data, nil
-
-}
-
-// ReadAsset returns the asset stored in the world state with given id.
 func (s *SmartContract) GetAllTraze(ctx contractapi.TransactionContextInterface, filter string) ([]map[string]interface{}, error) {
 
 	var data []map[string]interface{}
@@ -398,11 +370,11 @@ func (s *SmartContract) GetAllProductEventsById(ctx contractapi.TransactionConte
 }
 
 // GetAllProductEventsByBatchId returns all assets found in world state
-func (s *SmartContract) GetAllProductEventsByBatchIdIngredient(ctx contractapi.TransactionContextInterface, tenantId string, cropId string, label string) (map[string]interface{}, error) {
+func (s *SmartContract) GetAllProductEventsByBatchIdIngredient(ctx contractapi.TransactionContextInterface, cropId string, label string) (map[string]interface{}, error) {
 	assets := make(map[string]interface{})
 	if label == "Batch" {
 		// --------------------   Get ProductData   -----------------------
-		filters := fmt.Sprintf("{\"selector\":{\"TenantId\":\"%s\",\"Data.BatchId\":\"%s\",\"DocType\":\"%s\"}}", tenantId, cropId, "TransformationProduct")
+		filters := fmt.Sprintf("{\"selector\":{\"Data.BatchId\":\"%s\",\"DocType\":\"%s\"}}", cropId, "TransformationProduct")
 		resultsIterator0, err := ctx.GetStub().GetQueryResult(filters)
 		if err != nil {
 			return nil, fmt.Errorf("GetQueryResult: %v", err)
@@ -461,7 +433,7 @@ func (s *SmartContract) GetAllProductEventsByBatchIdIngredient(ctx contractapi.T
 		// --------------------   Get Events Data   -----------------------
 		var data []map[string]interface{}
 		// Started To check Type as Fertilization
-		filter := fmt.Sprintf("{\"selector\":{\"TenantId\":\"%s\",\"ParentId\":\"%s\",\"DocType\":\"%s\"}}", tenantId, asset["FTLCID"], "Event")
+		filter := fmt.Sprintf("{\"selector\":{\"ParentId\":\"%s\",\"DocType\":\"%s\"}}", asset["FTLCID"], "Event")
 		resultsIterator, err := ctx.GetStub().GetQueryResult(filter)
 		if err != nil {
 			return nil, fmt.Errorf("error event GetQueryResult: %v", err)
@@ -506,7 +478,7 @@ func (s *SmartContract) GetAllProductEventsByBatchIdIngredient(ctx contractapi.T
 			// Started To check Type as Fertilization
 			for _, id := range batchIds {
 				batchId := id.(string)
-				filter1 := fmt.Sprintf("{\"selector\":{\"TenantId\":\"%s\",\"Data.BatchId\":\"%s\",\"DocType\":\"%s\"}}", tenantId, batchId, "TransformationProduct")
+				filter1 := fmt.Sprintf("{\"selector\":{\"Data.BatchId\":\"%s\",\"DocType\":\"%s\"}}", batchId, "TransformationProduct")
 				resultsIterator1, err := ctx.GetStub().GetQueryResult(filter1)
 				if err != nil {
 					return nil, fmt.Errorf("error ingredient GetQueryResult: %v", err)
@@ -591,7 +563,7 @@ func (s *SmartContract) GetAllProductEventsByBatchIdIngredient(ctx contractapi.T
 		// --------------------   Get Events Data   -----------------------
 		var data []map[string]interface{}
 		// Started To check Type as Fertilization
-		filter := fmt.Sprintf("{\"selector\":{\"TenantId\":\"%s\",\"ParentId\":\"%s\",\"DocType\":\"%s\"}}", tenantId, asset["FTLCID"], "Event")
+		filter := fmt.Sprintf("{\"selector\":{\"ParentId\":\"%s\",\"DocType\":\"%s\"}}", asset["FTLCID"], "Event")
 		resultsIterator, err := ctx.GetStub().GetQueryResult(filter)
 		if err != nil {
 			return nil, err
@@ -636,7 +608,7 @@ func (s *SmartContract) GetAllProductEventsByBatchIdIngredient(ctx contractapi.T
 			// Started To check Type as Fertilization
 			for _, id := range batchIds {
 				batchId := id.(string)
-				filter1 := fmt.Sprintf("{\"selector\":{\"TenantId\":\"%s\",\"Data.BatchId\":\"%s\",\"DocType\":\"%s\"}}", tenantId, batchId, "TransformationProduct")
+				filter1 := fmt.Sprintf("{\"selector\":{\"Data.BatchId\":\"%s\",\"DocType\":\"%s\"}}", batchId, "TransformationProduct")
 				resultsIterator1, err := ctx.GetStub().GetQueryResult(filter1)
 				if err != nil {
 					return nil, fmt.Errorf("error ingredient GetQueryResult: %v", err)
@@ -666,11 +638,11 @@ func (s *SmartContract) GetAllProductEventsByBatchIdIngredient(ctx contractapi.T
 }
 
 // GetAllProductEventsByBatchId returns all assets found in world state
-func (s *SmartContract) GetAllProductEventsByBatchId(ctx contractapi.TransactionContextInterface, tenantId string, cropId string, label string) (map[string]interface{}, error) {
+func (s *SmartContract) GetAllProductEventsByBatchId(ctx contractapi.TransactionContextInterface, cropId string, label string) (map[string]interface{}, error) {
 	assets := make(map[string]interface{})
 	if label == "Batch" {
 		// --------------------   Get ProductData   -----------------------
-		filters := fmt.Sprintf("{\"selector\":{\"TenantId\":\"%s\",\"Data.BatchId\":\"%s\",\"DocType\":\"%s\"}}", tenantId, cropId, "TransformationProduct")
+		filters := fmt.Sprintf("{\"selector\":{\"Data.BatchId\":\"%s\",\"DocType\":\"%s\"}}", cropId, "TransformationProduct")
 		resultsIterator0, err := ctx.GetStub().GetQueryResult(filters)
 		if err != nil {
 			return nil, fmt.Errorf("GetQueryResult: %v", err)
@@ -729,7 +701,7 @@ func (s *SmartContract) GetAllProductEventsByBatchId(ctx contractapi.Transaction
 		// --------------------   Get Events Data   -----------------------
 		var data []map[string]interface{}
 		// Started To check Type as Fertilization
-		filter := fmt.Sprintf("{\"selector\":{\"TenantId\":\"%s\",\"ParentId\":\"%s\",\"DocType\":\"%s\"},\"sort\": [{\"Data.Date\": \"desc\"}]}", tenantId, asset["FTLCID"], "Event")
+		filter := fmt.Sprintf("{\"selector\":{\"ParentId\":\"%s\",\"DocType\":\"%s\"}}", asset["FTLCID"], "Event")
 		resultsIterator, err := ctx.GetStub().GetQueryResult(filter)
 		if err != nil {
 			return nil, fmt.Errorf("error event GetQueryResult: %v", err)
@@ -750,7 +722,7 @@ func (s *SmartContract) GetAllProductEventsByBatchId(ctx contractapi.Transaction
 			}
 			data = append(data, asset)
 		}
-
+		assets["Events"] = data
 		// --------------------   Get Ingredient Data   -----------------------
 		var ingredient []map[string]interface{}
 		fmt.Println("Inside Length")
@@ -768,13 +740,13 @@ func (s *SmartContract) GetAllProductEventsByBatchId(ctx contractapi.Transaction
 
 			batchIds, ok := batchIdsIface.([]interface{}) // most likely type
 			if !ok {
-				// return nil, fmt.Errorf("invalid BatchId type")
+				continue
 			}
 			fmt.Println("batchId", batchIds)
 			// Started To check Type as Fertilization
 			for _, id := range batchIds {
 				batchId := id.(string)
-				filter1 := fmt.Sprintf("{\"selector\":{\"TenantId\":\"%s\",\"Data.BatchId\":\"%s\",\"DocType\":\"%s\"}}", tenantId, batchId, "TransformationProduct")
+				filter1 := fmt.Sprintf("{\"selector\":{\"Data.BatchId\":\"%s\",\"DocType\":\"%s\"}}", batchId, "TransformationProduct")
 				resultsIterator1, err := ctx.GetStub().GetQueryResult(filter1)
 				if err != nil {
 					return nil, fmt.Errorf("error ingredient GetQueryResult: %v", err)
@@ -797,37 +769,6 @@ func (s *SmartContract) GetAllProductEventsByBatchId(ctx contractapi.Transaction
 			}
 		}
 		assets["Ingredient"] = ingredient
-
-		// --------------------   Get Ingredient Events Data   -----------------------
-		if len(ingredient) != 0 {
-			for _, ingred := range ingredient {
-				dataIng := ingred["Data"].(map[string]interface{})
-				// Started To check Type as Fertilization
-				filter := fmt.Sprintf("{\"TenantId\":\"%s\",\"selector\":{\"ParentId\":\"%s\",\"DocType\":\"%s\"},\"sort\": [{\"Data.Date\": \"desc\"}]}", tenantId, dataIng["ProductTraceLedgerId"], "Event")
-				resultsIterator, err := ctx.GetStub().GetQueryResult(filter)
-				if err != nil {
-					return nil, fmt.Errorf("error event GetQueryResult: %v", err)
-				}
-				defer resultsIterator.Close()
-
-				// var assets []map[string]interface{}
-				for resultsIterator.HasNext() {
-					queryResponse, err := resultsIterator.Next()
-					if err != nil {
-						return nil, err
-					}
-
-					var asset map[string]interface{}
-					err = json.Unmarshal(queryResponse.Value, &asset)
-					if err != nil {
-						return nil, fmt.Errorf("the unmarshall event error %s", err)
-					}
-					data = append(data, asset)
-				}
-			}
-
-			assets["Events"] = data
-		}
 
 	} else if label == "FTLC" {
 		// Check Exist
@@ -890,7 +831,7 @@ func (s *SmartContract) GetAllProductEventsByBatchId(ctx contractapi.Transaction
 		// --------------------   Get Events Data   -----------------------
 		var data []map[string]interface{}
 		// Started To check Type as Fertilization
-		filter := fmt.Sprintf("{\"selector\":{\"TenantId\":\"%s\",\"ParentId\":\"%s\",\"DocType\":\"%s\"},\"sort\": [{\"Data.Date\": \"desc\"}]}", tenantId, asset["FTLCID"], "Event")
+		filter := fmt.Sprintf("{\"selector\":{\"ParentId\":\"%s\",\"DocType\":\"%s\"}}", asset["FTLCID"], "Event")
 		resultsIterator, err := ctx.GetStub().GetQueryResult(filter)
 		if err != nil {
 			return nil, err
@@ -929,15 +870,13 @@ func (s *SmartContract) GetAllProductEventsByBatchId(ctx contractapi.Transaction
 
 			batchIds, ok := batchIdsIface.([]interface{}) // most likely type
 			if !ok {
-				// return nil, fmt.Errorf("invalid BatchId type")
 				continue
 			}
-
 			fmt.Println("batchId", batchIds)
 			// Started To check Type as Fertilization
 			for _, id := range batchIds {
-				batchId := id
-				filter1 := fmt.Sprintf("{\"TenantId\":\"%s\",\"selector\":{\"Data.BatchId\":\"%s\",\"DocType\":\"%s\"}}", tenantId, batchId, "TransformationProduct")
+				batchId := id.(string)
+				filter1 := fmt.Sprintf("{\"selector\":{\"Data.BatchId\":\"%s\",\"DocType\":\"%s\"}}", batchId, "TransformationProduct")
 				resultsIterator1, err := ctx.GetStub().GetQueryResult(filter1)
 				if err != nil {
 					return nil, fmt.Errorf("error ingredient GetQueryResult: %v", err)
@@ -967,7 +906,7 @@ func (s *SmartContract) GetAllProductEventsByBatchId(ctx contractapi.Transaction
 }
 
 // GetAllHarvest returns all assets found in world state
-func (s *SmartContract) GetAllProductListEventsById(ctx contractapi.TransactionContextInterface, tenantId string, filter string) ([]map[string]interface{}, error) {
+func (s *SmartContract) GetAllProductListEventsById(ctx contractapi.TransactionContextInterface, filter string) ([]map[string]interface{}, error) {
 	var data []map[string]interface{}
 	resultsIterator, err := ctx.GetStub().GetQueryResult(filter)
 	if err != nil {
@@ -990,7 +929,7 @@ func (s *SmartContract) GetAllProductListEventsById(ctx contractapi.TransactionC
 
 		var data2 []map[string]interface{}
 		// Started To check Type as Fertilization
-		filterEvent := fmt.Sprintf("{\"selector\":{\"TenantId\":\"%s\",\"ParentId\":\"%s\",\"DocType\":\"%s\"},\"sort\": [{\"Headers.eventWhen\": \"desc\"},{\"Headers.UnixTimeStamp\": \"desc\"}]}", tenantId, asset["FTLCID"].(string), "Event")
+		filterEvent := fmt.Sprintf("{\"selector\":{\"ParentId\":\"%s\",\"DocType\":\"%s\"},\"sort\": [{\"Headers.eventWhen\": \"desc\"},{\"Headers.UnixTimeStamp\": \"desc\"}]}", asset["FTLCID"].(string), "Event")
 		// filter := fmt.Sprintf("{\"selector\":{\"CropID\":\"%s\",\"EventType\":\"%s\"}}", cropId, "Fertilization")
 		resultsIterator2, err := ctx.GetStub().GetQueryResult(filterEvent)
 		if err != nil {
@@ -1020,7 +959,7 @@ func (s *SmartContract) GetAllProductListEventsById(ctx contractapi.TransactionC
 }
 
 // ReadAsset returns the asset stored in the world state with given id.
-func (s *SmartContract) TrazeKdesTransfer(ctx contractapi.TransactionContextInterface, id string, typeOrg string, toUserId int, toUserName string, ownerId string, toOwnerName string, fromUserId int, fromUserName string, tenantId string, userLocation string, ownerLocation string) (bool, error) {
+func (s *SmartContract) TrazeKdesTransfer(ctx contractapi.TransactionContextInterface, id string, typeOrg string, toUserId int, toUserName string, ownerId string, toOwnerName string, fromUserId int, fromUserName string, userLocation string,ownerLocation string) (bool, error) {
 	assetJSON, err := ctx.GetStub().GetState(id)
 	if err != nil {
 		return false, fmt.Errorf("failed to read data from world state: %v", err)
@@ -1054,10 +993,10 @@ func (s *SmartContract) TrazeKdesTransfer(ctx contractapi.TransactionContextInte
 		kdes["ToParentId"] = ownerId
 		kdes["FromUserName"] = fromUserName
 		kdes["FromUserId"] = fromUserId
-		kdes["UserLocation"] = userLocation
-		kdes["FarmLocation"] = ownerLocation
 		kdes["FarmName"] = toOwnerName
 		kdes["IsAccept"] = 1
+		kdes["UserLocation"] = userLocation
+		kdes["FarmLocation"] = ownerLocation		
 		assetJSON2, err4 := json.Marshal(kdes)
 		if err4 != nil {
 			return false, fmt.Errorf("the asset json %s already exists", assetJSON2)
@@ -1073,7 +1012,7 @@ func (s *SmartContract) TrazeKdesTransfer(ctx contractapi.TransactionContextInte
 	}
 	if typeOrg == "Processor" {
 		// Started To check Type as Fertilization
-		filterEvent := fmt.Sprintf("{\"selector\":{\"TenantId\":\"%s\",\"ParentId\":\"%s\",\"DocType\":\"%s\"},\"sort\": [{\"Headers.eventWhen\": \"desc\"},{\"Headers.UnixTimeStamp\": \"desc\"}]}", tenantId, id, "Event")
+		filterEvent := fmt.Sprintf("{\"selector\":{\"ParentId\":\"%s\",\"DocType\":\"%s\"},\"sort\": [{\"Headers.eventWhen\": \"desc\"},{\"Headers.UnixTimeStamp\": \"desc\"}]}", id, "Event")
 		resultsIterator2, err := ctx.GetStub().GetQueryResult(filterEvent)
 		if err != nil {
 			return false, err
@@ -1106,10 +1045,10 @@ func (s *SmartContract) TrazeKdesTransfer(ctx contractapi.TransactionContextInte
 		kdes["ToParentId"] = ownerId
 		kdes["FromUserName"] = fromUserName
 		kdes["FromUserId"] = fromUserId
-		kdes["UserLocation"] = userLocation
-		kdes["FarmLocation"] = ownerLocation
 		kdes["FarmName"] = toOwnerName
 		kdes["IsAccept"] = 1
+		kdes["UserLocation"] = userLocation
+		kdes["FarmLocation"] = ownerLocation
 		assetJSON2, err4 := json.Marshal(kdes)
 		if err4 != nil {
 			return false, fmt.Errorf("the asset json %s already exists", assetJSON2)
@@ -1130,10 +1069,10 @@ func (s *SmartContract) TrazeKdesTransfer(ctx contractapi.TransactionContextInte
 		kdes["ParentId"] = ownerId
 		kdes["FromUserName"] = fromUserName
 		kdes["FromUserId"] = fromUserId
-		kdes["UserLocation"] = userLocation
-		kdes["FarmLocation"] = ownerLocation
 		kdes["FarmName"] = toOwnerName
 		kdes["IsAccept"] = 1
+		kdes["UserLocation"] = userLocation
+		kdes["FarmLocation"] = ownerLocation
 		assetJSON2, err4 := json.Marshal(kdes)
 		if err4 != nil {
 			return false, fmt.Errorf("the asset json %s already exists", assetJSON2)
@@ -1154,10 +1093,10 @@ func (s *SmartContract) TrazeKdesTransfer(ctx contractapi.TransactionContextInte
 		kdes["ParentId"] = ownerId
 		kdes["FromUserName"] = fromUserName
 		kdes["FromUserId"] = fromUserId
-		kdes["UserLocation"] = userLocation
-		kdes["FarmLocation"] = ownerLocation
 		kdes["FarmName"] = toOwnerName
 		kdes["IsAccept"] = 1
+		kdes["UserLocation"] = userLocation
+		kdes["FarmLocation"] = ownerLocation
 		assetJSON2, err4 := json.Marshal(kdes)
 		if err4 != nil {
 			return false, fmt.Errorf("the asset json %s already exists", assetJSON2)
@@ -1269,8 +1208,8 @@ func (s *SmartContract) FoodTrazeability(ctx contractapi.TransactionContextInter
 }
 
 // GetAllFarms returns all assets found in world state
-func (s *SmartContract) GetFarmByPagination(ctx contractapi.TransactionContextInterface, tenantId, limit, offset string) ([]map[string]interface{}, error) {
-	queryString := fmt.Sprintf("{\"selector\":{\"TenantId\":\"%s\",\"DocType\":\"%s\"}}", tenantId, "Farm")
+func (s *SmartContract) GetFarmByPagination(ctx contractapi.TransactionContextInterface, limit, offset string) ([]map[string]interface{}, error) {
+	queryString := fmt.Sprintf("{\"selector\":{\"DocType\":\"%s\"}}", "Farm")
 	var Limit int
 	if limit != "" {
 		i, err := strconv.ParseInt(limit, 10, 32)
@@ -1332,11 +1271,11 @@ func (s *SmartContract) GetFarmByPagination(ctx contractapi.TransactionContextIn
 }
 
 // GetAllFarms returns all assets found in world state
-func (s *SmartContract) CheckFarmEmail(ctx contractapi.TransactionContextInterface, tenantId, email string) (bool, error) {
+func (s *SmartContract) CheckFarmEmail(ctx contractapi.TransactionContextInterface, email string) (bool, error) {
 
 	// range query with empty string for startKey and endKey does an
 	// open-ended query of all assets in the chaincode namespace.
-	queryString := fmt.Sprintf("{\"TenantId\":\"%s\",\"selector\":{\"DocType\":\"%s\",\"Farmer.ContactInformation.Email\":\"%s\"}}", tenantId, "Farm", email)
+	queryString := fmt.Sprintf("{\"selector\":{\"DocType\":\"%s\",\"Farmer.ContactInformation.Email\":\"%s\"}}", "Farm", email)
 	resultsIterator, err := ctx.GetStub().GetQueryResult(queryString)
 	if err != nil {
 		return true, err

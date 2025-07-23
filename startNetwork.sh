@@ -35,7 +35,7 @@ rm -rf go/wallet/*
 
 # launch network; create channel and join peer to channel
 pushd food-traze-network
-./network.sh down
+# ./network.sh down
 ./network.sh up createChannel  -ca -s couchdb
 ./network.sh deployCC -ccn traze -ccp ../food-traze-common/ -ccl go
 popd
