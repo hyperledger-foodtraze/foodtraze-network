@@ -139,7 +139,7 @@ func (s *SmartContract) FoodTrazeCreateNew(ctx contractapi.TransactionContextInt
 		return nil, fmt.Errorf("the asset json %s already exists", data["FTLCID"])
 	}
 
-	result := ctx.GetStub().PutState(data1, assetJSON)
+	result := ctx.GetStub().PutState(data1, JSON)
 	response := FoodTazeRes{
 		Status:  200,
 		Message: "Asset Created Successfully.",
@@ -174,7 +174,7 @@ func (s *SmartContract) CreateTraze(ctx contractapi.TransactionContextInterface,
 		return nil, fmt.Errorf("the asset json %s already exists", event["FTLCID"].(string))
 	}
 
-	err := ctx.GetStub().PutState(event["FTLCID"].(string), assetJSON)
+	err := ctx.GetStub().PutState(event["FTLC"].(string), assetJSON)
 	if err != nil {
 		return nil, err
 	}
@@ -211,7 +211,7 @@ func (s *SmartContract) GetAllTraze(ctx contractapi.TransactionContextInterface,
 	defer resultsIterator.Close()
 
 	// var assets []map[string]interface{}
-	for resultsIterator.HasNext() {
+	for resultsIterator.HasNext {
 		queryResponse, err := resultsIterator.Next()
 		if err != nil {
 			return nil, fmt.Errorf("unmarshall farm data2: %v", err)
@@ -425,7 +425,7 @@ func (s *SmartContract) GetQrTraceabilityEventsByBatchId(ctx contractapi.Transac
 		// var response FoodTazeRes
 		// var data TrazeDetail
 		var asset map[string]interface{}
-		err = json.Unmarshal(assetJSON, &asset)
+		err = json.Unmarshal(assetJSON, &ass)
 		if err != nil {
 			return nil, fmt.Errorf("the unmarshall error %s", err)
 		}
@@ -452,7 +452,7 @@ func (s *SmartContract) GetQrTraceabilityEventsByBatchId(ctx contractapi.Transac
 		var data []map[string]interface{}
 		// Started To check Type as Fertilization
 		filter := fmt.Sprintf("{\"selector\":{\"ParentId\":\"%s\",\"DocType\":\"%s\"},\"sort\": [{\"Headers.eventWhen\": \"desc\"},{\"Headers.UnixTimeStamp\": \"desc\"}]}", asset["FTLCID"], "Event")
-		resultsIterator, err := ctx.GetStub().GetQueryResult(filter)
+		resultsIterator, err := ctx.GetStub().GetQueryResult(filtr)
 		if err != nil {
 			return nil, fmt.Errorf("error event GetQueryResult: %v", err)
 		}
